@@ -12,6 +12,7 @@ export default function HomePage() {
   const [url, setUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,10 +20,14 @@ export default function HomePage() {
 
     setIsLoading(true)
 
-    // Mock: Extract video ID from URL
-    // In real implementation, this would call an API
-    const videoId = "demo-video-123"
+    const videoId = url.split("/").pop()
+    if (!videoId) {
+      setIsLoading(false)
+      alert("유효한 치지직 다시보기 URL을 입력하세요")
+      return
+    }
 
+    // 처리 완료 후 결과 페이지로 이동
     setTimeout(() => {
       router.push(`/video/${videoId}`)
     }, 500)
@@ -39,7 +44,7 @@ export default function HomePage() {
           </h1>
 
           <p className="text-lg text-muted-foreground text-pretty">
-            인터넷 방송 다시보기 URL을 입력하면 AI가 자동으로 하이라이트 구간을 찾아드립니다
+            치지직 다시보기 URL을 입력하면 자동으로 하이라이트 구간을 찾아드립니다
           </p>
         </div>
 
@@ -47,7 +52,7 @@ export default function HomePage() {
           <div className="relative">
             <Input
               type="text"
-              placeholder="Video URL을 입력하세요"
+              placeholder="치지직 다시보기 URL을 입력하세요"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="h-14 pr-14 text-base"
@@ -56,8 +61,8 @@ export default function HomePage() {
             <Button
               type="submit"
               size="icon"
-              className="absolute right-1 top-1 h-12 w-12 bg-accent text-accent-foreground hover:bg-accent/90"
-              disabled={isLoading || !url.trim()}
+              className="absolute right-1 top-1 h-12 w-12 bg-accent text-accent-foreground hover:bg-accent/90 cursor-pointer"
+              disabled={isLoading || !url.trim() || !isValidUrl(url)}
             >
               <Search className="h-5 w-5" />
             </Button>
@@ -66,8 +71,8 @@ export default function HomePage() {
           <Button
             type="submit"
             size="lg"
-            className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-            disabled={isLoading || !url.trim()}
+            className="w-full bg-accent text-accent-foreground hover:bg-accent/90 cursor-pointer"
+            disabled={isLoading || !url.trim() || !isValidUrl(url)}
           >
             {isLoading ? "분석 중..." : "하이라이트 찾기"}
           </Button>
@@ -92,4 +97,19 @@ export default function HomePage() {
       </div>
     </div>
   )
+}
+
+function isValidUrl(url: string): boolean {
+  // 유효한 치지직 URL인 지 확인
+  // URL은 https://chzzk.naver.com/video/{videoId} 형식이어야 함
+
+  try {
+    const parsedUrl = new URL(url)
+    return (
+      parsedUrl.hostname === "chzzk.naver.com" &&
+      parsedUrl.pathname.startsWith("/video/")
+    )
+  } catch {
+    return false
+  }
 }
