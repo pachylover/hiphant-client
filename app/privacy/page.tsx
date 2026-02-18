@@ -4,14 +4,14 @@ export default function PrivacyPage() {
       <div className="mx-auto max-w-3xl space-y-8">
         <div className="space-y-4">
           <h1 className="text-4xl font-bold">개인정보 처리 방침</h1>
-          <p className="text-muted-foreground">최종 수정일: 2025년 1월 10일</p>
+          <p className="text-muted-foreground">최종 수정일: 2026년 2월 18일</p>
         </div>
 
         <div className="prose prose-neutral dark:prose-invert max-w-none space-y-6">
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold">1. 수집하는 개인정보</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Highlight는 서비스 제공을 위해 최소한의 개인정보를 수집합니다. 사용자가 입력한 비디오 URL 정보는
+              HiPhant는 서비스 제공을 위해 최소한의 개인정보를 수집합니다. 사용자가 입력한 비디오 URL 정보는
               하이라이트 생성 목적으로만 사용되며, 별도로 저장되지 않습니다.
             </p>
           </section>
@@ -37,7 +37,7 @@ export default function PrivacyPage() {
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold">4. 개인정보의 제3자 제공</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Highlight는 사용자의 개인정보를 제3자에게 제공하지 않습니다. 다만, 법령에 의해 요구되는 경우나 사용자의
+              HiPhant는 사용자의 개인정보를 제3자에게 제공하지 않습니다. 다만, 법령에 의해 요구되는 경우나 사용자의
               동의가 있는 경우에는 예외로 합니다.
             </p>
           </section>
@@ -46,7 +46,7 @@ export default function PrivacyPage() {
             <h2 className="text-2xl font-semibold">5. 사용자의 권리</h2>
             <p className="text-muted-foreground leading-relaxed">
               사용자는 언제든지 자신의 개인정보에 대한 열람, 수정, 삭제를 요청할 수 있습니다. 개인정보 관련 문의사항은
-              contact@highlight.com으로 연락 주시기 바랍니다.
+              hiphant.contact@gmail.com으로 연락 주시기 바랍니다.
             </p>
           </section>
 
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
               개인정보 보호와 관련한 문의사항이 있으시면 아래 연락처로 문의해 주시기 바랍니다.
             </p>
             <div className="rounded-lg bg-muted p-4 text-muted-foreground">
-              <p>이메일: hiphant.biz@gmail.com</p>
+              <p>이메일: hiphant.contact@gmail.com</p>
             </div>
           </section>
 
