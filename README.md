@@ -1,4 +1,4 @@
-# Pachy Highlight (frontend)
+# HiPhant-Frontend (frontend)
 
 Live demo: https://hiphant.pachylover.com/ ✅
 
