@@ -11,6 +11,12 @@ interface VideoInfoCardProps {
 }
 
 export function VideoInfoCard({ thumbnailImageUrl, channel, publishDate, duration, videoTitle }: VideoInfoCardProps) {
+  let formattedTime = ""
+  if (duration >= 3600) {
+    formattedTime = `${Math.floor(duration / 3600)}:${Math.floor((duration % 3600) / 60).toString().padStart(2, "0")}:${(duration % 60).toString().padStart(2, "0")}`
+  } else {
+    formattedTime = `${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, "0")}`
+  }
   return (
     <Card className="overflow-hidden border-border/50">
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
@@ -33,7 +39,7 @@ export function VideoInfoCard({ thumbnailImageUrl, channel, publishDate, duratio
 
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            <span>{Math.floor(duration / 60)}:{duration % 60}</span>
+            <span>{formattedTime}</span>
           </div>
         </div>
       </div>

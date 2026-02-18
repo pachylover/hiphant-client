@@ -38,13 +38,13 @@ export default function HomePage() {
       <div className="w-full max-w-3xl space-y-8">
         <div className="space-y-4 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl">
-            하이라이트 타임스탬프를
+            하이라이트 타임라인을
             <br />
-            <span className="text-accent">자동으로 생성</span>하세요
+            <span className="text-accent">자동으로 생성</span>합니다
           </h1>
 
           <p className="text-lg text-muted-foreground text-pretty">
-            치지직 다시보기 URL을 입력하면 자동으로 하이라이트 구간을 찾아드립니다
+            치지직 다시보기 URL을 입력하시면 채팅이 많았던 구간을 찾습니다
           </p>
         </div>
 
@@ -77,23 +77,6 @@ export default function HomePage() {
             {isLoading ? "분석 중..." : "하이라이트 찾기"}
           </Button>
         </form>
-
-        <div className="grid gap-4 pt-8 sm:grid-cols-3">
-          <div className="space-y-2 text-center">
-            <div className="text-3xl font-bold text-accent">AI 분석</div>
-            <p className="text-sm text-muted-foreground">자동 하이라이트 추출</p>
-          </div>
-
-          <div className="space-y-2 text-center">
-            <div className="text-3xl font-bold text-accent">빠른 처리</div>
-            <p className="text-sm text-muted-foreground">몇 초 만에 결과 확인</p>
-          </div>
-
-          <div className="space-y-2 text-center">
-            <div className="text-3xl font-bold text-accent">정확한 타임스탬프</div>
-            <p className="text-sm text-muted-foreground">정확한 시간 정보 제공</p>
-          </div>
-        </div>
       </div>
     </div>
   )

@@ -64,7 +64,7 @@ export default function PrivacyPage() {
               개인정보 보호와 관련한 문의사항이 있으시면 아래 연락처로 문의해 주시기 바랍니다.
             </p>
             <div className="rounded-lg bg-muted p-4 text-muted-foreground">
-              <p>이메일: contact@highlight.com</p>
+              <p>이메일: hiphant.biz@gmail.com</p>
             </div>
           </section>
 

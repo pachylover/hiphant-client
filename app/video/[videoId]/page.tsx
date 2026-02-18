@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { VideoInfoCard } from "@/components/video-info-card"
 import { VideoInfoSkeleton } from "@/components/video-info-skeleton"
@@ -10,6 +10,7 @@ import { Sparkles, Search } from "lucide-react"
 export default function VideoPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const videoId = params.videoId as string
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
@@ -18,8 +19,40 @@ export default function VideoPage() {
   const [isGenerating, setIsGenerating] = useState(false)
 
   useEffect(() => {
+    // allow pre-seeding the page with a video object via query string:
+    // ?payload=<json | urlencoded-json | base64(json)>
+    const payloadParam = searchParams?.get("payload") || searchParams?.get("video") || searchParams?.get("videoData")
+
+    const tryParse = (p: string | null) => {
+      if (!p) return null
+      // try direct JSON / url-decoded JSON / base64
+      try {
+        return JSON.parse(p)
+      } catch (_) {}
+      try {
+        return JSON.parse(decodeURIComponent(p))
+      } catch (_) {}
+      try {
+        // atob for base64
+        return JSON.parse(atob(p))
+      } catch (err) {
+        console.warn("failed to parse payload param", err)
+        return null
+      }
+    }
+
+    if (payloadParam) {
+      const parsed = tryParse(payloadParam)
+      if (parsed) {
+        setVideoData(parsed)
+        setIsLoading(false)
+        return
+      }
+      console.warn("payload found but could not be parsed — falling back to API fetch")
+    }
+
     fetchVideoData()
-  }, [videoId])
+  }, [videoId, searchParams])
 
   //비디오 정보 가져오기
   const fetchVideoData = async () => {
@@ -36,10 +69,10 @@ export default function VideoPage() {
       const data = await response.json()
 
       // 오류가 있는 경우 처리
-      if (data.error || data.code !== 200) {
+      if (data.error || data.resultCode !== 200) {
         throw new Error(data.error || "비디오 정보를 가져오는 중 오류가 발생했습니다")
       } else {
-        setVideoData(data.content)
+        setVideoData(data.data)
       }
       setIsLoading(false)
       return data
@@ -100,7 +133,7 @@ export default function VideoPage() {
             disabled={isGenerating}
           >
             <Sparkles className="mr-2 h-5 w-5" />
-            {isGenerating ? "생성 중..." : "하이라이트 생성하기"}
+            {isGenerating ? "이동중입니다..." : "하이라이트 생성화면으로 이동"}
           </Button>
 
           <Button className="cursor-pointer" size="lg" variant="outline" onClick={() => router.push("/")}>

@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,11 +12,16 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between mx-auto">
-        <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent">
-            <span className="text-lg font-bold text-accent-foreground">H</span>
+        <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80" aria-label="HiPhant 홈으로 이동">
+          <div className="relative w-[120px] h-[40px] flex-shrink-0">
+            <Image
+              src={theme === "dark" ? "/assets/images/common/logo.w.png" : "/assets/images/common/logo.b.png"}
+              alt="HiPhant 로고"
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
-          <span className="text-lg font-semibold">Highlight</span>
         </Link>
 
         <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full" aria-label="테마 전환">

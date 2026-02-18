@@ -9,8 +9,8 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Highlight - 인터넷 방송 하이라이트 타임스탬프",
-  description: "인터넷 방송 다시보기의 하이라이트 타임스탬프를 자동으로 생성합니다",
+  title: "HiPhant - 치지직 하이라이트 타임스탬프",
+  description: "치지직 다시보기의 하이라이트 타임스탬프를 자동으로 생성합니다",
   generator: "v0.app",
 }
 
