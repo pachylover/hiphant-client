@@ -152,7 +152,7 @@ export default function HighlightsPage() {
       // 비디오 정보 정규화
       console.log("Raw video content:", videoContent)
       const mappedVideoInfo = {
-        thumbnailImageUrl: videoContent.thumbnail || videoContent.thumbnailUrl || videoContent.thumbnailImageUrl || "/streaming-video-thumbnail.png",
+        thumbnailImageUrl: videoContent.thumbnail || videoContent.thumbnailUrl || videoContent.thumbnailImageUrl || "/placeholder.svg",
         channel: { channelName: videoContent.channelName || videoContent.channel?.channelName || "알 수 없음" },
         publishDate: videoContent.createdAt || videoContent.publishDate || "",
         duration: typeof videoContent.duration === "number" ? videoContent.duration : parseKoreanDuration(videoContent.duration) ?? 0,
