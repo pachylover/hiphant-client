@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     siteName: 'HiPhant',
     images: [
       {
-        url: '/logo.v2.png', // public 폴더에 위치한 이미지
+        url: '/assets/images/common/logo.v2.png', // public 폴더에 위치한 이미지
         width: 1200,
         height: 630,
       },
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'HiPhant - 치지직 다시보기 하이라이트 타임스탬프 추출기',
     description: '치지직 다시보기의 하이라이트 타임스탬프를 자동으로 생성합니다',
-    images: ['/logo.v2.png'], // public 폴더에 위치한 이미지
+    images: ['/assets/images/common/logo.v2.png'], // public 폴더에 위치한 이미지
   },
 }
 

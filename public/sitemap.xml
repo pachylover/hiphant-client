@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <!-- Example entry, replace with actual URLs -->
+    <!-- Static pages -->
     <url>
         <loc>https://hiphant.pachylover.com/</loc>
         <lastmod>2026-02-20</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>https://hiphant.pachylover.com/privacy</loc>
+        <lastmod>2026-02-20</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
     </url>
     <!-- Add more URLs here -->
 </urlset>
