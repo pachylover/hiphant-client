@@ -9,9 +9,30 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "HiPhant - 치지직 하이라이트 타임스탬프",
+  title: "HiPhant - 치지직 다시보기 하이라이트 타임스탬프 추출기",
   description: "치지직 다시보기의 하이라이트 타임스탬프를 자동으로 생성합니다",
   generator: "v0.app",
+  openGraph: {
+    title: 'HiPhant - 치지직 다시보기 하이라이트 타임스탬프 추출기',
+    description: '치지직 다시보기의 하이라이트 타임스탬프를 자동으로 생성합니다',
+    url: 'https://hiphant.pachylover.com',
+    siteName: 'HiPhant',
+    images: [
+      {
+        url: '/logo.v2.png', // public 폴더에 위치한 이미지
+        width: 1200,
+        height: 630,
+      },
+    ],
+    locale: 'ko_KR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'HiPhant - 치지직 다시보기 하이라이트 타임스탬프 추출기',
+    description: '치지직 다시보기의 하이라이트 타임스탬프를 자동으로 생성합니다',
+    images: ['/logo.v2.png'], // public 폴더에 위치한 이미지
+  },
 }
 
 export default function RootLayout({
