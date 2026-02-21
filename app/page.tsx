@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
+import NoticePopup from "@/components/notice-popup"
 
 export default function HomePage() {
   const [url, setUrl] = useState("")
@@ -78,6 +79,7 @@ export default function HomePage() {
           </Button>
         </form>
       </div>
+      <NoticePopup />
     </div>
   )
 }
