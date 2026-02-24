@@ -38,14 +38,12 @@ export default function HomePage() {
     <div className="container flex min-h-[calc(100vh-8rem)] items-center justify-center py-12 mx-auto">
       <div className="w-full max-w-3xl space-y-8">
         <div className="space-y-4 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl">
-            하이라이트 타임라인을
-            <br />
-            <span className="text-accent">자동으로 생성</span>합니다
+          <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl text-accent">
+            HiPhant - 치지직 다시보기 하이라이트 분석기
           </h1>
 
           <p className="text-lg text-muted-foreground text-pretty">
-            치지직 다시보기 URL을 입력하시면 채팅이 많았던 구간을 찾습니다
+            치지직 다시보기 URL을 입력하여 하이라이트를 찾아보세요
           </p>
         </div>
 
