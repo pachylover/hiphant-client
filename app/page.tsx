@@ -38,8 +38,9 @@ export default function HomePage() {
     <div className="container flex min-h-[calc(100vh-8rem)] items-center justify-center py-12 mx-auto">
       <div className="w-full max-w-3xl space-y-8">
         <div className="space-y-4 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl text-accent">
-            HiPhant - 치지직 다시보기 하이라이트 분석기
+          <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl">
+            <span className="text-accent">HiPhant</span><br/>
+            치지직 하이라이트 분석기
           </h1>
 
           <p className="text-lg text-muted-foreground text-pretty">
