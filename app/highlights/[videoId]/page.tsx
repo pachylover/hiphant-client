@@ -7,6 +7,7 @@ import { Empty, EmptyContent, EmptyTitle, EmptyDescription } from "@/components/
 import { VideoInfoCard } from "@/components/video-info-card"
 import { VideoInfoSkeleton } from "@/components/video-info-skeleton"
 import { HighlightList } from "@/components/highlight-list"
+import type { Highlight } from "@/components/highlight-list"
 import { HighlightListSkeleton } from "@/components/highlight-list-skeleton"
 import { log } from "console"
 
@@ -19,7 +20,7 @@ export default function HighlightsPage() {
   // 비디오 메타 정보(정규화된 형태)
   const [videoInfo, setVideoInfo] = useState<any>(null)
   // 정규화된 하이라이트 항목 리스트
-  const [highlightItems, setHighlightItems] = useState<any[]>([])
+  const [highlightItems, setHighlightItems] = useState<Highlight[]>([])
   // 클라이언트에서 POST 요청을 보내는 동안의 진행 상태
   const [isCreatingHighlights, setIsCreatingHighlights] = useState(false)
   // 서버 측 생성(백그라운드) 진행 상태: 백엔드가 resultCode=202로 알릴 때 true
@@ -145,6 +146,7 @@ export default function HighlightsPage() {
           title: rawHighlight.title ?? rawHighlight.summary ?? rawHighlight.name ?? "하이라이트",
           seconds: secondsValue ?? 0,
           videoId: videoId,
+          highlightType: rawHighlight.highlightType ?? "NORMAL",
           raw: rawHighlight,
         }
       })

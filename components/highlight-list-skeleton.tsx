@@ -4,6 +4,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 export function HighlightListSkeleton() {
   return (
     <div className="space-y-3">
+      {/* tabs skeleton */}
+      <div className="flex gap-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-20 rounded" />
+        ))}
+      </div>
+
       {Array.from({ length: 5 }).map((_, index) => (
         <Card key={index} className="border-border/50 p-4">
           <div className="flex items-start gap-4">
