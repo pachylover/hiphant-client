@@ -78,7 +78,6 @@ export default function HomePage() {
           </Button>
         </form>
       </div>
-      <NoticePopup />
     </div>
   )
 }
