@@ -80,7 +80,7 @@ export function HighlightList({ highlights }: HighlightListProps) {
           value="QUESTION"
           className="h-9 flex-1 rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground dark:data-[state=active]:bg-accent dark:data-[state=active]:text-accent-foreground data-[state=active]:shadow-none"
         >
-          ?
+          갈고리 수집
         </TabsTrigger>
       </TabsList>
 

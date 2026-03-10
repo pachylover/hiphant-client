@@ -1,41 +1,39 @@
-import type { Metadata } from "next"
-import { redirect } from "next/navigation"
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
-
-export const metadata: Metadata = {
-  title: "치지직 하이라이트 분석기 | HiPhant",
-  description: "치지직 다시보기 URL을 입력해 하이라이트 타임스탬프를 확인하세요.",
-}
-
-async function submitVideoUrl(formData: FormData) {
-  "use server"
-
-  const url = String(formData.get("url") || "").trim()
-
-  if (!url) {
-    redirect("/")
-  }
-
-  try {
-    const parsedUrl = new URL(url)
-    if (parsedUrl.hostname !== "chzzk.naver.com" || !parsedUrl.pathname.startsWith("/video/")) {
-      redirect("/")
-    }
-
-    const videoId = parsedUrl.pathname.split("/").pop()
-    if (!videoId) {
-      redirect("/")
-    }
-
-    redirect(`/video/${videoId}`)
-  } catch {
-    redirect("/")
-  }
-}
+import NoticePopup from "@/components/notice-popup"
 
 export default function HomePage() {
+  const [url, setUrl] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!url.trim()) return
+
+    setIsLoading(true)
+
+    const videoId = url.split("/").pop()
+    if (!videoId) {
+      setIsLoading(false)
+      alert("유효한 치지직 다시보기 URL을 입력하세요")
+      return
+    }
+
+    // 처리 완료 후 결과 페이지로 이동
+    setTimeout(() => {
+      router.push(`/video/${videoId}`)
+    }, 500)
+  }
+
   return (
     <div className="container flex min-h-[calc(100vh-8rem)] items-center justify-center py-12 mx-auto">
       <div className="w-full max-w-3xl space-y-8">
@@ -50,19 +48,21 @@ export default function HomePage() {
           </p>
         </div>
 
-        <form action={submitVideoUrl} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
             <Input
               type="text"
-              name="url"
               placeholder="치지직 다시보기 URL을 입력하세요"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
               className="h-14 pr-14 text-base"
-              required
+              disabled={isLoading}
             />
             <Button
               type="submit"
               size="icon"
               className="absolute right-1 top-1 h-12 w-12 bg-accent text-accent-foreground hover:bg-accent/90 cursor-pointer"
+              disabled={isLoading || !url.trim() || !isValidUrl(url)}
             >
               <Search className="h-5 w-5" />
             </Button>
@@ -72,11 +72,27 @@ export default function HomePage() {
             type="submit"
             size="lg"
             className="w-full bg-accent text-accent-foreground hover:bg-accent/90 cursor-pointer"
+            disabled={isLoading || !url.trim() || !isValidUrl(url)}
           >
-            하이라이트 찾기
+            {isLoading ? "분석 중..." : "하이라이트 찾기"}
           </Button>
         </form>
       </div>
     </div>
   )
+}
+
+function isValidUrl(url: string): boolean {
+  // 유효한 치지직 URL인 지 확인
+  // URL은 https://chzzk.naver.com/video/{videoId} 형식이어야 함
+
+  try {
+    const parsedUrl = new URL(url)
+    return (
+      parsedUrl.hostname === "chzzk.naver.com" &&
+      parsedUrl.pathname.startsWith("/video/")
+    )
+  } catch {
+    return false
+  }
 }
