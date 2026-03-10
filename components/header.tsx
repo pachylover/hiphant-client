@@ -32,13 +32,13 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full" aria-label="테마 전환">
+          <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full cursor-pointer" aria-label="테마 전환">
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full" aria-label="메뉴 열기">
+              <Button variant="ghost" size="icon" className="rounded-full cursor-pointer" aria-label="메뉴 열기">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>

@@ -147,13 +147,13 @@ export default function NoticePage() {
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           {selectedNotice ? (
-            <Button variant="ghost" className="gap-2 pl-0 hover:pl-0" onClick={handleBack}>
+            <Button variant="ghost" className="gap-2 pl-0 hover:pl-0 cursor-pointer" onClick={handleBack}>
               <ArrowLeft className="h-4 w-4" />
               목록으로
             </Button>
           ) : (
             <Link href="/">
-              <Button variant="ghost" className="gap-2 pl-0 hover:pl-0">
+              <Button variant="ghost" className="gap-2 pl-0 hover:pl-0 cursor-pointer">
                 <ArrowLeft className="h-4 w-4" />
                 돌아가기
               </Button>
@@ -187,7 +187,7 @@ export default function NoticePage() {
                     <li key={notice.id}>
                       <button
                         onClick={() => handleSelectNotice(notice)}
-                        className="w-full flex items-center gap-4 px-6 py-4 hover:bg-secondary/50 transition-colors text-left"
+                        className="w-full flex items-center gap-4 px-6 py-4 hover:bg-secondary/50 transition-colors text-left cursor-pointer"
                       >
                         <span className="text-sm font-medium text-accent w-8 shrink-0">
                           {notices.length - index}

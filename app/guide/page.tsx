@@ -9,25 +9,25 @@ import Image from "next/image"
 const steps = [
   {
     step: 1,
-    title: "치지직 다시보기 URL 복사",
-    description: "분석하고 싶은 치지직 다시보기 영상의 URL을 복사합니다. URL은 'https://chzzk.naver.com/video/...' 형식이어야 합니다.",
+    title: "URL 입력",
+    description: "HiPhant 메인 페이지의 입력창에 복사한 다시보기 URL을 붙여넣기 합니다. 붙여넣은 후 엔터 키를 누르거나 '하이라이트 찾기' 버튼을 클릭합니다.",
     image: "/assets/images/guide/step-1.png",
   },
   {
     step: 2,
-    title: "URL 입력",
-    description: "HiPhant 메인 페이지의 입력창에 복사한 URL을 붙여넣기 합니다.",
+    title: "비디오 정보 확인",
+    description: "비디오 정보를 확인하고 맞다면 '하이라이트 생성화면으로 이동' 버튼을 클릭합니다.(다른 영상을 입력한 경우 다시찾기 버튼을 클릭하여 다시 시도해 주세요.)",
     image: "/assets/images/guide/step-2.png",
   },
   {
     step: 3,
-    title: "하이라이트 찾기 버튼 클릭",
-    description: "'하이라이트 찾기' 버튼을 클릭하여 분석을 시작합니다. 채팅이 많은 영상의 경우 분석에 시간이 소요될 수 있습니다.",
+    title: "하이라이트 찾기",
+    description: "'하이라이트 생성' 버튼을 클릭하여 생성을 시작합니다. 채팅이 많은 영상의 경우 분석에 시간이 소요될 수 있습니다. (약 15만 건의 경우 3분 이상)",
     image: "/assets/images/guide/step-3.png",
   },
   {
     step: 4,
-    title: "하이라이트 구간 확인",
+    title: "하이라이트 확인",
     description: "분석이 완료되면 하이라이트 구간 목록이 표시됩니다. 각 구간을 클릭하면 해당 시간으로 이동할 수 있습니다.",
     image: "/assets/images/guide/step-4.png",
   },
