@@ -65,6 +65,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className="dark">
+      <head>
+        {/* naver site‑verification */}
+        <meta
+          name="naver-site-verification"
+          content="0fe281b2b4b22c8256178fe13447c7e0b37e3e21"
+        />
+      </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
         <div className="flex min-h-screen flex-col">
           <Suspense fallback={<div>Loading...</div>}>
