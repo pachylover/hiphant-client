@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -30,6 +33,33 @@ const steps = [
   },
 ]
 
+function StepImage({ src, alt, step }: { src: string; alt: string; step: number }) {
+  const [hasError, setHasError] = useState(false)
+
+  if (hasError) {
+    return (
+      <div className="relative w-full aspect-video bg-secondary flex items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-4xl font-bold text-muted-foreground/30">{step}</span>
+          <span className="text-muted-foreground text-sm">이미지 준비 중</span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative w-full aspect-video bg-secondary">
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        className="object-cover"
+        onError={() => setHasError(true)}
+      />
+    </div>
+  )
+}
+
 export default function GuidePage() {
   return (
     <div className="container py-8 mx-auto">
@@ -56,22 +86,11 @@ export default function GuidePage() {
               key={item.step}
               className="rounded-lg border border-border bg-card overflow-hidden"
             >
-              {/* Image placeholder - 추후 이미지 추가 */}
-              <div className="relative w-full aspect-video bg-secondary flex items-center justify-center">
-                <Image
-                  src={item.image}
-                  alt={`Step ${item.step}: ${item.title}`}
-                  fill
-                  className="object-cover"
-                  onError={(e) => {
-                    // 이미지가 없으면 placeholder 표시
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-secondary/80">
-                  <span className="text-muted-foreground text-sm">이미지 준비 중</span>
-                </div>
-              </div>
+              <StepImage
+                src={item.image}
+                alt={`Step ${item.step}: ${item.title}`}
+                step={item.step}
+              />
 
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-3">
