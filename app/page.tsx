@@ -6,6 +6,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { BannerCarousel } from "@/components/banner-carousel"
+import { RecentHighlights } from "@/components/recent-highlights"
 import { Search } from "lucide-react"
 
 export default function HomePage() {
@@ -34,8 +36,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className="container flex min-h-[calc(100vh-8rem)] items-center justify-center py-12 mx-auto">
-      <div className="w-full max-w-3xl space-y-8">
+    <div className="container mx-auto flex flex-col items-center gap-16 py-12">
+      <div className="flex min-h-[55vh] w-full max-w-3xl flex-col justify-center gap-8">
+        <BannerCarousel />
+
         <div className="space-y-4 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl">
             <span className="text-accent">HiPhant</span><br/>
@@ -76,6 +80,10 @@ export default function HomePage() {
             {isLoading ? "분석 중..." : "하이라이트 찾기"}
           </Button>
         </form>
+      </div>
+
+      <div className="w-full max-w-5xl">
+        <RecentHighlights />
       </div>
     </div>
   )

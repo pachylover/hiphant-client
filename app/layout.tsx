@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { AnnouncementBar } from "@/components/announcement-bar"
 import { Suspense } from "react"
 import "./globals.css"
 
@@ -76,6 +77,7 @@ export default function RootLayout({
         <div className="flex min-h-screen flex-col">
           <Suspense fallback={<div>Loading...</div>}>
             <Header />
+            <AnnouncementBar />
             <main className="flex-1">{children}</main>
             <Footer />
           </Suspense>
