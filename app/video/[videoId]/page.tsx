@@ -128,16 +128,21 @@ export default function VideoPage() {
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button
             size="lg"
-            className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 cursor-pointer"
+            className="h-auto min-h-12 w-full flex-1 whitespace-normal py-3 text-center leading-snug bg-accent text-accent-foreground hover:bg-accent/90 cursor-pointer sm:w-auto"
             onClick={handleGenerateHighlights}
             disabled={isGenerating}
           >
-            <Sparkles className="mr-2 h-5 w-5" />
+            <Sparkles className="mr-2 h-5 w-5 shrink-0" />
             {isGenerating ? "이동중입니다..." : "하이라이트 생성화면으로 이동"}
           </Button>
 
-          <Button className="cursor-pointer" size="lg" variant="outline" onClick={() => router.push("/")}>
-            <Search className="mr-2 h-5 w-5" />
+          <Button
+            className="h-auto min-h-12 w-full cursor-pointer whitespace-normal py-3 sm:w-auto"
+            size="lg"
+            variant="outline"
+            onClick={() => router.push("/")}
+          >
+            <Search className="mr-2 h-5 w-5 shrink-0" />
             다시 찾기
           </Button>
         </div>

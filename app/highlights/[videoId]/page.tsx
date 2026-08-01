@@ -9,7 +9,7 @@ import { VideoInfoSkeleton } from "@/components/video-info-skeleton"
 import { HighlightList } from "@/components/highlight-list"
 import type { Highlight } from "@/components/highlight-list"
 import { HighlightListSkeleton } from "@/components/highlight-list-skeleton"
-import { log } from "console"
+import { ChatSearchDialog } from "@/components/chat-search-dialog"
 
 export default function HighlightsPage() {
   const params = useParams()
@@ -217,11 +217,16 @@ export default function HighlightsPage() {
   return (
     <div className="container py-12 mx-auto">
       <div className="mx-auto max-w-4xl space-y-8">
-        <div className="space-y-4">
-          <h1 className="text-3xl font-bold text-balance">하이라이트 타임스탬프</h1>
-          <p className="text-muted-foreground">
-            타임스탬프를 클릭하시면 치지직 다시보기에서 해당 구간으로 이동합니다. 하이라이트 생성이 아직 안 되어 있다면 아래 버튼을 눌러 생성해주세요.
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-4">
+            <h1 className="text-3xl font-bold text-balance">하이라이트 타임스탬프</h1>
+            <p className="text-muted-foreground">
+              타임스탬프를 클릭하시면 치지직 다시보기에서 해당 구간으로 이동합니다. 하이라이트 생성이 아직 안 되어 있다면 아래 버튼을 눌러 생성해주세요.
+            </p>
+          </div>
+          <div className="shrink-0">
+            <ChatSearchDialog videoId={videoId} />
+          </div>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-5">
