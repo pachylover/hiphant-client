@@ -18,7 +18,8 @@ import {
 import { adminFetch } from "@/lib/admin-auth"
 import type { DataResult, ListResult, RecentHighlight, StatsResponse } from "@/lib/api"
 
-const ACCENT = "#00FFA3"
+// globals.css 에서 라이트/다크별로 표면 대비 3:1 이상을 만족하도록 정의한 시리즈 색
+const SERIES_COLOR = "var(--chart-series)"
 
 function StatCard({
   label,
@@ -150,7 +151,7 @@ export default function AdminDashboardPage() {
                     }}
                     labelStyle={{ color: "var(--foreground)" }}
                   />
-                  <Bar dataKey="count" name="생성 수" fill={ACCENT} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" name="생성 수" fill={SERIES_COLOR} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -189,6 +190,7 @@ export default function AdminDashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">최근 생성된 하이라이트</CardTitle>
+          <p className="text-xs text-muted-foreground">영상별로 가장 최근 하이라이트 1건만 표시합니다.</p>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -215,7 +217,13 @@ export default function AdminDashboardPage() {
                     <Badge variant="secondary" className="shrink-0">
                       {TYPE_LABEL[h.highlightType ?? "NORMAL"] ?? h.highlightType}
                     </Badge>
-                    <span className="flex-1 truncate text-sm">{h.title ?? "하이라이트"}</span>
+                    {/* 영상 제목이 주 식별자. 백필 전 데이터만 videoId 로 대체된다. */}
+                    <span className="min-w-0 flex-1 truncate text-sm" title={h.videoTitle ?? undefined}>
+                      {h.videoTitle ?? h.videoId}
+                    </span>
+                    <span className="hidden shrink-0 text-xs text-muted-foreground md:inline">
+                      {h.title ?? "하이라이트"}
+                    </span>
                     <span className="hidden shrink-0 font-mono text-xs text-muted-foreground sm:inline">
                       {h.videoId}
                     </span>

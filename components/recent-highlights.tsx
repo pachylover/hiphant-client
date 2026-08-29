@@ -66,7 +66,7 @@ export function RecentHighlights() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={thumb}
-                      alt={h.title ?? "하이라이트 섬네일"}
+                      alt={h.videoTitle ?? h.title ?? "하이라이트 섬네일"}
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       loading="lazy"
                     />
@@ -90,11 +90,12 @@ export function RecentHighlights() {
 
                 {/* 본문 */}
                 <div className="flex flex-col gap-2 p-3">
+                  {/* 영상 제목을 우선 노출하고, 아직 백필되지 않은 항목만 하이라이트 문구로 대체한다 */}
                   <h3 className="line-clamp-2 text-sm font-medium leading-snug text-pretty group-hover:text-accent">
-                    {h.title ?? "하이라이트"}
+                    {h.videoTitle ?? h.title ?? "하이라이트"}
                   </h3>
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="truncate font-mono">{h.videoId}</span>
+                    <span className="truncate">{h.videoTitle ? (h.title ?? h.videoId) : h.videoId}</span>
                     <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
                   </div>
                 </div>

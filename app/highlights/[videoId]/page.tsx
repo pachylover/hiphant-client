@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
@@ -10,6 +10,17 @@ import { HighlightList } from "@/components/highlight-list"
 import type { Highlight } from "@/components/highlight-list"
 import { HighlightListSkeleton } from "@/components/highlight-list-skeleton"
 import { ChatSearchDialog } from "@/components/chat-search-dialog"
+import { ChatVolumeChart } from "@/components/chat-volume-chart"
+import { HighlightProgress } from "@/components/highlight-progress"
+import { Skeleton } from "@/components/ui/skeleton"
+import { RotateCw } from "lucide-react"
+import {
+  fetchChatTimeline,
+  requestChatReload,
+  subscribeProgress,
+  type ChatTimeline,
+  type ProgressEvent,
+} from "@/lib/api"
 
 export default function HighlightsPage() {
   const params = useParams()
@@ -25,6 +36,15 @@ export default function HighlightsPage() {
   const [isCreatingHighlights, setIsCreatingHighlights] = useState(false)
   // 서버 측 생성(백그라운드) 진행 상태: 백엔드가 resultCode=202로 알릴 때 true
   const [isProcessing, setIsProcessing] = useState(false)
+  // 분당 채팅량 (null = 아직 로딩 중)
+  const [timeline, setTimeline] = useState<ChatTimeline | null>(null)
+  const [isTimelineLoading, setIsTimelineLoading] = useState(true)
+  // SSE 로 받은 최신 진행 상황
+  const [progress, setProgress] = useState<ProgressEvent | null>(null)
+  const [isReloadingChats, setIsReloadingChats] = useState(false)
+
+  // 열려 있는 SSE 연결을 닫기 위한 핸들
+  const unsubscribeRef = useRef<(() => void) | null>(null)
 
   // 한국어 형식(duration 문자열)을 초 단위 정수로 변환합니다. (예: "2시간 34분" -> 9240)
   function parseKoreanDuration(s: string | number | undefined): number | null {
@@ -53,6 +73,15 @@ export default function HighlightsPage() {
   }
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+
+  // 분당 채팅량을 불러옵니다. 채팅이 하나도 없으면 "채팅 다시 불러오기" 가 활성화됩니다.
+  const loadTimeline = useCallback(async () => {
+    setIsTimelineLoading(true)
+    const data = await fetchChatTimeline(videoId)
+    setTimeline(data)
+    setIsTimelineLoading(false)
+    return data
+  }, [videoId])
 
   // 비디오 정보와 하이라이트를 불러옵니다. (백엔드의 resultCode를 우선 사용)
   const loadVideoAndHighlights = async () => {
@@ -163,20 +192,63 @@ export default function HighlightsPage() {
 
       setVideoInfo(mappedVideoInfo)
       setHighlightItems(normalizedHighlights)
+      return apiResultCode
     } catch (err) {
       console.error(err)
       // 오류 발생 시 빈 상태로 초기화(생성 버튼을 표시하기 위함)
       setVideoInfo(null)
       setHighlightItems([])
       setIsProcessing(false)
+      return null
     } finally {
       setIsLoading(false)
     }
   }
 
+  /**
+   * 진행 상황 스트림(SSE)을 연다. 이미 열려 있으면 먼저 닫는다.
+   * 완료(DONE)되면 하이라이트/그래프를 다시 읽어 화면을 갱신한다.
+   */
+  const openProgressStream = useCallback(() => {
+    unsubscribeRef.current?.()
+    unsubscribeRef.current = subscribeProgress(videoId, {
+      onProgress: (event) => {
+        setProgress(event)
+        if (event.phase === "DONE") {
+          setIsProcessing(false)
+          setIsReloadingChats(false)
+          loadVideoAndHighlights()
+          loadTimeline()
+        } else if (event.phase === "ERROR") {
+          setIsProcessing(false)
+          setIsReloadingChats(false)
+        } else {
+          setIsProcessing(true)
+        }
+      },
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoId, loadTimeline])
+
   // 마운트 및 videoId 변경 시 재로딩
   useEffect(() => {
-    loadVideoAndHighlights()
+    let active = true
+
+    setProgress(null)
+    loadVideoAndHighlights().then((resultCode) => {
+      // 접속 시점에 이미 서버에서 작업이 돌고 있으면 바로 진행 상황을 붙인다
+      if (active && resultCode === 202) openProgressStream()
+    })
+    loadTimeline().then((data) => {
+      if (active && data?.processing) openProgressStream()
+    })
+
+    return () => {
+      active = false
+      unsubscribeRef.current?.()
+      unsubscribeRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId])
 
   // 하이라이트 생성 요청(POST) - 201: 생성 시작, 409: 이미 생성중
@@ -191,17 +263,10 @@ export default function HighlightsPage() {
         body: JSON.stringify(body),
       })
 
-      if (res.status === 201) {
-        // 서버에서 생성 시작됨 -> 처리중 플래그 켜고 다시 조회
+      if (res.status === 201 || res.status === 409) {
+        // 생성이 시작됐거나 이미 진행 중 — 두 경우 모두 진행 상황을 구독한다
         setIsProcessing(true)
-        await loadVideoAndHighlights()
-        return
-      }
-
-      if (res.status === 409) {
-        setIsProcessing(true)
-        const text = await res.text().catch(() => "")
-        alert(`이미 하이라이트 생성 중입니다. (${text || res.status})`)
+        openProgressStream()
         return
       }
 
@@ -214,6 +279,23 @@ export default function HighlightsPage() {
     }
   }
 
+  // 채팅 다시 불러오기 - 보관 기간이 지나 채팅이 사라진 영상 복구용
+  const handleReloadChats = async () => {
+    if (isReloadingChats || isProcessing) return
+    setIsReloadingChats(true)
+    setProgress(null)
+    try {
+      await requestChatReload(videoId)
+      openProgressStream()
+    } catch (err) {
+      setIsReloadingChats(false)
+      alert((err as Error).message || "채팅을 불러올 수 없습니다.")
+    }
+  }
+
+  const hasNoChats = timeline !== null && timeline.totalChats === 0
+  const isBusy = isProcessing || isReloadingChats || isCreatingHighlights
+
   return (
     <div className="container py-12 mx-auto">
       <div className="mx-auto max-w-4xl space-y-8">
@@ -224,10 +306,28 @@ export default function HighlightsPage() {
               타임스탬프를 클릭하시면 치지직 다시보기에서 해당 구간으로 이동합니다. 하이라이트 생성이 아직 안 되어 있다면 아래 버튼을 눌러 생성해주세요.
             </p>
           </div>
-          <div className="shrink-0">
+          <div className="flex shrink-0 flex-wrap gap-2">
             <ChatSearchDialog videoId={videoId} />
+            {/* 저장된 채팅이 없을 때만 활성화된다 (채팅은 일정 기간이 지나면 사라짐) */}
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleReloadChats}
+              disabled={!hasNoChats || isBusy}
+              title={
+                hasNoChats
+                  ? "치지직에서 이 영상의 채팅을 다시 수집합니다"
+                  : "저장된 채팅이 있어 다시 불러올 필요가 없습니다"
+              }
+            >
+              <RotateCw className={isReloadingChats ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+              채팅 다시 불러오기
+            </Button>
           </div>
         </div>
+
+        {/* 진행 상황 스트리밍 */}
+        <HighlightProgress progress={progress} />
 
         <div className="grid gap-8 lg:grid-cols-5">
           <div className="lg:col-span-2">
@@ -247,17 +347,30 @@ export default function HighlightsPage() {
                       {isCreatingHighlights || isProcessing ? "생성 중..." : "하이라이트 생성"}
                     </Button>
                   </div>
-                  {isProcessing && <div className="text-sm text-muted-foreground pt-2">하이라이트 생성이 진행 중입니다. 잠시 후 자동으로 갱신됩니다.</div>}
                 </EmptyContent>
               </Empty>
             ) : (
-              <>
-                {isProcessing && <div className="mb-4 text-sm text-muted-foreground">하이라이트 생성이 진행 중입니다 — 일부 결과만 표시됩니다.</div>}
-                <HighlightList highlights={highlightItems} />
-              </>
+              <HighlightList highlights={highlightItems} />
             )}
           </div>
         </div>
+
+        {/* 분당 채팅량 그래프 */}
+        {isTimelineLoading ? (
+          <Skeleton className="h-[340px] w-full rounded-xl" />
+        ) : hasNoChats ? (
+          <Empty>
+            <EmptyContent>
+              <EmptyTitle>저장된 채팅이 없습니다</EmptyTitle>
+              <EmptyDescription>
+                채팅은 일정 기간이 지나면 삭제됩니다. 위의 &quot;채팅 다시 불러오기&quot; 버튼으로 다시 수집하면 분당
+                채팅량 그래프를 볼 수 있습니다.
+              </EmptyDescription>
+            </EmptyContent>
+          </Empty>
+        ) : timeline ? (
+          <ChatVolumeChart videoId={videoId} timeline={timeline} />
+        ) : null}
       </div>
     </div>
   )
