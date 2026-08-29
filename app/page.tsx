@@ -79,6 +79,12 @@ export default function HomePage() {
           >
             {isLoading ? "분석 중..." : "하이라이트 찾기"}
           </Button>
+
+          <p className="text-center text-sm leading-relaxed text-muted-foreground text-pretty">
+            치지직 다시보기 채팅 내역을 분석하여 채팅이 많았던 구간을 찾습니다.
+            <br className="hidden sm:block" />{" "}
+            하이라이트 찾기 후 생성을 통해 하이라이트를 만들어보세요.
+          </p>
         </form>
       </div>
 
