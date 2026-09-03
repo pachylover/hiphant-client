@@ -8,9 +8,12 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { AnnouncementBar } from "@/components/announcement-bar"
 import { Suspense } from "react"
+import { SITE_URL } from "@/lib/site"
 import "./globals.css"
 
 export const metadata: Metadata = {
+  // 하위 페이지의 canonical/OG 이미지 상대경로가 이 주소를 기준으로 절대경로가 된다
+  metadataBase: new URL(SITE_URL),
   title: "HiPhant - 치지직 다시보기 하이라이트 타임스탬프 추출기",
   description: "치지직 다시보기의 하이라이트 타임스탬프를 자동으로 생성합니다",
   generator: "v0.app",

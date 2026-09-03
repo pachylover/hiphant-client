@@ -75,11 +75,32 @@ export interface RecentHighlight {
   videoId: string
   /** 치지직 다시보기 제목. 백필 전 데이터는 null 일 수 있다. */
   videoTitle: string | null
+  /** 스트리머(채널) 정보. 백필 전 데이터는 null 일 수 있다. */
+  channelId: string | null
+  channelName: string | null
   title: string | null
   chatCount: number | null
   highlightType: string | null
   minute: number | null
   createdAt: string | null
+}
+
+// 비수집(블랙리스트) 회원
+export interface BlockedUser {
+  id: number
+  uid: string
+  nickname: string | null
+  memo: string | null
+  deletedChats: number
+  createdAt: string | null
+}
+
+// 비수집 등록 전 확인 정보
+export interface BlockedUserPreview {
+  uid: string
+  chatCount: number
+  nicknames: string[]
+  alreadyBlocked: boolean
 }
 
 // 채팅 검색 매칭 방식: partial(부분 일치) | exact(정확히 일치)
@@ -113,10 +134,20 @@ export async function fetchActiveBanners(): Promise<Banner[]> {
   }
 }
 
+/**
+ * 요청 캐시 정책. `revalidate` 초를 주면(서버 렌더링) 그만큼 캐시하고,
+ * 주지 않으면 매번 새로 읽는다(클라이언트).
+ */
+function cachePolicy(revalidate?: number): RequestInit {
+  return revalidate === undefined
+    ? { cache: "no-store" }
+    : ({ next: { revalidate } } as RequestInit)
+}
+
 // 영상 섬네일 조회 (백엔드가 영상별로 캐시함). 없으면 null.
-export async function fetchVideoThumbnail(videoId: string): Promise<string | null> {
+export async function fetchVideoThumbnail(videoId: string, revalidate?: number): Promise<string | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/videos/${encodeURIComponent(videoId)}`, { cache: "no-store" })
+    const res = await fetch(`${API_BASE_URL}/v1/videos/${encodeURIComponent(videoId)}`, cachePolicy(revalidate))
     if (!res.ok) return null
     const body = await res.json()
     const d = body?.data ?? body
@@ -127,9 +158,42 @@ export async function fetchVideoThumbnail(videoId: string): Promise<string | nul
 }
 
 // 공개 홈용: 최근 생성된 하이라이트 (영상별 최신 1건)
-export async function fetchRecentHighlights(limit = 6): Promise<RecentHighlight[]> {
+export async function fetchRecentHighlights(limit = 6, revalidate?: number): Promise<RecentHighlight[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/v1/highlights/recent?limit=${limit}`, { cache: "no-store" })
+    const res = await fetch(`${API_BASE_URL}/v1/highlights/recent?limit=${limit}`, cachePolicy(revalidate))
+    if (!res.ok) return []
+    const body: ListResult<RecentHighlight> = await res.json()
+    return body.list ?? []
+  } catch {
+    return []
+  }
+}
+
+// 같은 스트리머(채널)의 다른 하이라이트. 현재 보고 있는 영상은 제외한다.
+export async function fetchChannelHighlights(
+  channelId: string,
+  excludeVideoId: string,
+  limit = 6,
+  revalidate?: number,
+): Promise<RecentHighlight[]> {
+  try {
+    const qs = new URLSearchParams({ exclude: excludeVideoId, limit: String(limit) })
+    const res = await fetch(
+      `${API_BASE_URL}/v1/highlights/channel/${encodeURIComponent(channelId)}?${qs.toString()}`,
+      cachePolicy(revalidate),
+    )
+    if (!res.ok) return []
+    const body: ListResult<RecentHighlight> = await res.json()
+    return body.list ?? []
+  } catch {
+    return []
+  }
+}
+
+/** 사이트맵용: 하이라이트가 생성된 영상 목록(영상별 1건, 최근 순). */
+export async function fetchHighlightIndex(limit = 500, revalidate?: number): Promise<RecentHighlight[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/highlights/index?limit=${limit}`, cachePolicy(revalidate))
     if (!res.ok) return []
     const body: ListResult<RecentHighlight> = await res.json()
     return body.list ?? []
