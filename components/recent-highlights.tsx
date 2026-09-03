@@ -1,17 +1,10 @@
-"use client"
-
-import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Clock, Sparkles, ChevronRight, Film } from "lucide-react"
-import { fetchRecentHighlights, fetchVideoThumbnail, type RecentHighlight } from "@/lib/api"
+import { fetchRecentHighlights, fetchVideoThumbnail } from "@/lib/api"
 
-const TYPE_LABEL: Record<string, string> = {
-  NORMAL: "기본",
-  LAUGH: "ㅋㅋㅋ",
-  QUESTION: "갈고리",
-}
+/** 목록과 섬네일을 서버에서 5분 단위로 캐시한다 — 크롤러가 받는 HTML에 그대로 들어간다. */
+const REVALIDATE_SECONDS = 300
 
 function formatMinute(minute: number | null): string {
   if (minute == null) return "00:00"
@@ -23,29 +16,21 @@ function formatMinute(minute: number | null): string {
   return parts.map((p) => String(p).padStart(2, "0")).join(":")
 }
 
-export function RecentHighlights() {
-  const [items, setItems] = useState<RecentHighlight[] | null>(null)
-  const [thumbs, setThumbs] = useState<Record<string, string | null>>({})
+/**
+ * 최근 생성된 하이라이트. 서버 컴포넌트라 카드와 링크가 초기 HTML 에 포함되고,
+ * 검색엔진이 각 하이라이트 페이지를 그대로 따라갈 수 있다.
+ */
+export async function RecentHighlights() {
+  const items = await fetchRecentHighlights(6, REVALIDATE_SECONDS)
 
-  useEffect(() => {
-    let active = true
-    fetchRecentHighlights(6).then((list) => {
-      if (!active) return
-      setItems(list)
-      // 각 영상 섬네일을 병렬로 로드 (백엔드 캐시됨)
-      Promise.all(
-        list.map((h) => fetchVideoThumbnail(h.videoId).then((t) => [h.videoId, t] as const)),
-      ).then((pairs) => {
-        if (active) setThumbs(Object.fromEntries(pairs))
-      })
-    })
-    return () => {
-      active = false
-    }
-  }, [])
+  // 데이터가 없으면 섹션 자체를 감춘다
+  if (items.length === 0) return null
 
-  // 로딩 전이거나 데이터가 없으면 섹션 자체를 감춘다
-  if (!items || items.length === 0) return null
+  const thumbs = Object.fromEntries(
+    await Promise.all(
+      items.map(async (h) => [h.videoId, await fetchVideoThumbnail(h.videoId, REVALIDATE_SECONDS)] as const),
+    ),
+  ) as Record<string, string | null>
 
   return (
     <section className="w-full">
@@ -57,6 +42,7 @@ export function RecentHighlights() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((h) => {
           const thumb = thumbs[h.videoId]
+          const title = h.videoTitle ?? "하이라이트"
           return (
             <Link key={h.id} href={`/highlights/${encodeURIComponent(h.videoId)}`} className="group">
               <Card className="h-full overflow-hidden border-border/50 p-0 transition-all hover:border-accent hover:shadow-md">
@@ -66,7 +52,7 @@ export function RecentHighlights() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={thumb}
-                      alt={h.videoTitle ?? h.title ?? "하이라이트 섬네일"}
+                      alt={h.channelName ? `${h.channelName} - ${title}` : title}
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       loading="lazy"
                     />
@@ -76,11 +62,6 @@ export function RecentHighlights() {
                     </div>
                   )}
 
-                  {/* 상단 유형 배지 */}
-                  <Badge variant="secondary" className="absolute left-2 top-2 shadow-sm">
-                    {TYPE_LABEL[h.highlightType ?? "NORMAL"] ?? h.highlightType}
-                  </Badge>
-
                   {/* 하단 타임스탬프 */}
                   <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 font-mono text-xs text-white">
                     <Clock className="h-3 w-3" />
@@ -88,16 +69,15 @@ export function RecentHighlights() {
                   </span>
                 </div>
 
-                {/* 본문 */}
+                {/* 본문 — 영상 제목과 스트리머만 노출한다 */}
                 <div className="flex flex-col gap-2 p-3">
-                  {/* 영상 제목을 우선 노출하고, 아직 백필되지 않은 항목만 하이라이트 문구로 대체한다 */}
-                  <h3 className="line-clamp-2 text-sm font-medium leading-snug text-pretty group-hover:text-accent">
-                    {h.videoTitle ?? h.title ?? "하이라이트"}
-                  </h3>
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="truncate">{h.videoTitle ? (h.title ?? h.videoId) : h.videoId}</span>
-                    <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="line-clamp-2 text-sm font-medium leading-snug text-pretty group-hover:text-accent">
+                      {title}
+                    </h3>
+                    <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
                   </div>
+                  {h.channelName && <p className="truncate text-xs text-muted-foreground">{h.channelName}</p>}
                 </div>
               </Card>
             </Link>

@@ -4,7 +4,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
-import { LayoutDashboard, ImageIcon, Megaphone, LogOut, Loader2 } from "lucide-react"
+import { LayoutDashboard, ImageIcon, Megaphone, UserX, LogOut, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { verifyToken, clearToken } from "@/lib/admin-auth"
@@ -13,6 +13,7 @@ const NAV = [
   { href: "/admin", label: "대시보드", icon: LayoutDashboard, exact: true },
   { href: "/admin/banners", label: "배너 관리", icon: ImageIcon, exact: false },
   { href: "/admin/announcements", label: "안내문구 관리", icon: Megaphone, exact: false },
+  { href: "/admin/blocked-users", label: "비수집 회원 관리", icon: UserX, exact: false },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

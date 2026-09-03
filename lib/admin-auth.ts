@@ -51,15 +51,19 @@ export async function adminFetch<T = any>(
   if (token) headers.set("Authorization", `Bearer ${token}`)
 
   const res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers, cache: "no-store" })
+  const body = await res.json().catch(() => ({}))
 
-  if (res.status === 401 || res.status === 403) {
+  // 백엔드의 /error 핸들러는 HTTP 200 으로 응답하고 실제 상태는 본문에 담는다.
+  // 따라서 HTTP 상태만 보면 401/403 을 놓치므로 본문의 status/resultCode 도 함께 확인한다.
+  const status = Number((body as any)?.status ?? (body as any)?.resultCode ?? res.status)
+
+  if (res.status === 401 || res.status === 403 || status === 401 || status === 403) {
     clearToken()
     throw new AuthError("인증이 만료되었습니다. 다시 로그인해주세요.")
   }
 
-  const body = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    throw new Error((body as any)?.resultMsg || `요청 실패: ${res.status}`)
+  if (!res.ok || status >= 400) {
+    throw new Error((body as any)?.resultMsg || (body as any)?.message || `요청 실패: ${status}`)
   }
   return body as T
 }

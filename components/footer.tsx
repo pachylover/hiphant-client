@@ -5,7 +5,20 @@ export function Footer() {
     <footer className="mt-auto border-t border-border/40 bg-background">
       <div className="container py-8 mx-auto">
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} HiPhant. All rights reserved.</p>
+          <div className="space-y-2 text-center md:text-left">
+            <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} HiPhant. All rights reserved.</p>
+            {/* 수집 거부(비수집) 안내 — 관리자 페이지에서 uid 를 등록하면 수집 제외 + 기존 채팅 삭제 */}
+            <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
+              수집을 원하지 않는 경우{" "}
+              <Link
+                href="mailto:hiphant.contact@gmail.com"
+                className="underline underline-offset-2 transition-colors hover:text-foreground"
+              >
+                hiphant.contact@gmail.com
+              </Link>
+              으로 닉네임/uid(채널 URL의 긴 문자열)를 전달해주세요.
+            </p>
+          </div>
 
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-6">
