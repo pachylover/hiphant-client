@@ -4,8 +4,19 @@ import { HighlightsClient } from "./highlights-client"
 import { fetchVideoAndHighlights } from "@/lib/highlights"
 import { SITE_URL } from "@/lib/site"
 
-// 하이라이트 목록을 서버에서 렌더링한다 — 검색엔진이 제목/스트리머/타임스탬프를 그대로 읽는다.
+// 하이라이트 목록을 서버에서 렌더링한다 (첫 화면이 비어 보이지 않도록).
 export const revalidate = 300
+
+/**
+ * 검색 색인에서 제외한다.
+ *
+ * 이 페이지의 제목·설명에는 스트리머 이름과 방송 제목이 들어간다. 남의 정보로 검색 노출이
+ * 잡히지 않도록 noindex 를 건다. follow 는 남겨 링크는 따라가게 한다.
+ *
+ * robots.txt 로 크롤링 자체를 막지는 않는다. 막아 버리면 크롤러가 이 noindex 를 읽지 못해
+ * 이미 색인된 페이지가 오히려 계속 남는다.
+ */
+const NOINDEX = { index: false, follow: true } as const
 
 interface PageProps {
   params: Promise<{ videoId: string }>
@@ -23,6 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: "하이라이트 타임스탬프 | HiPhant",
       description: "치지직 다시보기의 채팅이 몰린 구간을 타임스탬프로 정리합니다.",
       alternates: { canonical: url },
+      robots: NOINDEX,
     }
   }
 
@@ -39,6 +51,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `${title} | HiPhant`,
     description,
     alternates: { canonical: url },
+    robots: NOINDEX,
     openGraph: {
       title,
       description,

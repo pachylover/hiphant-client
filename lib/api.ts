@@ -190,18 +190,6 @@ export async function fetchChannelHighlights(
   }
 }
 
-/** 사이트맵용: 하이라이트가 생성된 영상 목록(영상별 1건, 최근 순). */
-export async function fetchHighlightIndex(limit = 500, revalidate?: number): Promise<RecentHighlight[]> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/v1/highlights/index?limit=${limit}`, cachePolicy(revalidate))
-    if (!res.ok) return []
-    const body: ListResult<RecentHighlight> = await res.json()
-    return body.list ?? []
-  } catch {
-    return []
-  }
-}
-
 // 공개 안내문구 조회
 export async function fetchActiveAnnouncements(): Promise<Announcement[]> {
   try {

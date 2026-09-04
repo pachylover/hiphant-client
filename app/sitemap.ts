@@ -1,29 +1,21 @@
 import type { MetadataRoute } from "next"
 
-import { fetchHighlightIndex } from "@/lib/api"
 import { SITE_URL } from "@/lib/site"
 
-// 하이라이트가 계속 생기므로 정적 파일 대신 매시간 갱신되는 사이트맵을 만든다.
 export const revalidate = 3600
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticPages: MetadataRoute.Sitemap = [
+/**
+ * 정적 페이지만 싣는다.
+ *
+ * 하이라이트 페이지(/highlights/[videoId])는 제목·설명에 스트리머 이름과 방송 제목이
+ * 들어가므로 검색 노출 대상에서 제외한다. 사이트맵에서 빼는 것만으로는 색인을 막지 못해
+ * 해당 페이지들에는 noindex 를 함께 걸어 두었다 (app/highlights/[videoId]/page.tsx).
+ */
+export default function sitemap(): MetadataRoute.Sitemap {
+  return [
     { url: `${SITE_URL}/`, changeFrequency: "daily", priority: 1.0 },
     { url: `${SITE_URL}/guide`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${SITE_URL}/notice`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE_URL}/privacy`, changeFrequency: "monthly", priority: 0.5 },
-  ]
-
-  // 하이라이트가 생성된 영상 페이지. API 가 죽어 있으면 빈 배열이라 정적 페이지만 남는다.
-  const highlights = await fetchHighlightIndex(500, revalidate)
-
-  return [
-    ...staticPages,
-    ...highlights.map((h) => ({
-      url: `${SITE_URL}/highlights/${encodeURIComponent(h.videoId)}`,
-      lastModified: h.createdAt ? new Date(h.createdAt) : undefined,
-      changeFrequency: "weekly" as const,
-      priority: 0.6,
-    })),
   ]
 }
