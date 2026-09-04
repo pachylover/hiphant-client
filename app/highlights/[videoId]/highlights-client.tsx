@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
 import { VideoInfoCard } from "@/components/video-info-card"
 import { HighlightList } from "@/components/highlight-list"
+import { HighlightListSkeleton } from "@/components/highlight-list-skeleton"
 import { ChatSearchDialog } from "@/components/chat-search-dialog"
 import { ChatVolumeChart } from "@/components/chat-volume-chart"
 import { ChannelHighlights } from "@/components/channel-highlights"
@@ -39,8 +40,8 @@ export function HighlightsClient({
   initialHighlights,
   initialResultCode,
 }: HighlightsClientProps) {
-  // 서버에서 받은 값으로 시작한다. 실패했을 때만 마운트 후 다시 읽는다.
-  const [isLoading, setIsLoading] = useState(false)
+  // 서버에서 받은 값으로 시작한다. 값이 비어 있으면 마운트 후 다시 읽는다.
+  const [isLoading, setIsLoading] = useState(initialHighlights.length === 0)
   const [videoInfo, setVideoInfo] = useState<NormalizedVideoInfo | null>(initialVideoInfo)
   const [highlightItems, setHighlightItems] = useState<NormalizedHighlight[]>(initialHighlights)
   // 클라이언트에서 POST 요청을 보내는 동안의 진행 상태
@@ -110,8 +111,14 @@ export function HighlightsClient({
 
     setProgress(null)
 
-    // 서버 렌더링이 실패했을 때만 다시 읽는다. 성공했다면 그 값을 그대로 쓴다.
-    if (initialVideoInfo === null) {
+    // 서버가 넘겨준 값이 불완전하면 다시 읽는다.
+    //
+    // 하이라이트가 빈 배열인 경우도 재조회 대상이다. 서버 렌더링은 fetch 결과를 잠시 캐시하므로
+    // 생성 직후처럼 "아직 없음" 이 캐시된 순간에 들어온 방문자는 목록을 못 본 채 굳어버린다.
+    // (새로고침하면 보이던 증상이 이것이다.)
+    const needsRefetch = initialVideoInfo === null || initialHighlights.length === 0
+
+    if (needsRefetch) {
       loadVideoAndHighlights().then((resultCode) => {
         if (active && resultCode === 202) openProgressStream()
       })
@@ -218,7 +225,9 @@ export function HighlightsClient({
           </div>
 
           <div className="lg:col-span-3">
-            {highlightItems.length === 0 ? (
+            {isLoading && highlightItems.length === 0 ? (
+              <HighlightListSkeleton />
+            ) : highlightItems.length === 0 ? (
               <Empty>
                 <EmptyContent>
                   <EmptyTitle>하이라이트가 아직 없습니다</EmptyTitle>
