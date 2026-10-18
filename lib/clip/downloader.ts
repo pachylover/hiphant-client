@@ -30,7 +30,7 @@ export async function downloadClip({ source, startSeconds, endSeconds, signal, m
     const playlist = parseMediaPlaylist(source.playlist, source.baseUrl), segments = selectSegments(playlist, startSeconds, endSeconds)
     if (segments.at(-1)!.endSeconds - segments[0].startSeconds > 600) throw new Error("세그먼트 경계 보정 후 길이가 10분을 초과합니다. 요청 구간을 줄여주세요.")
     context.onBytes = undefined
-    const init = await readAsset(playlist.init, context, Math.min(maxBytes, 32 * 1024 * 1024))
+    const init = await readAsset(segments[0].init, context, Math.min(maxBytes, 32 * 1024 * 1024))
     let completed = 0
     const data = await concurrentMap(segments, async segment => { const result = await readAsset(segment, context); progress("DOWNLOADING", ++completed, segments.length); return result }, 4, context.abort)
     controller.signal.throwIfAborted(); progress("PACKAGING")
