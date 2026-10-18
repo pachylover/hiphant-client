@@ -79,6 +79,7 @@ export function ChatVolumeChart({ videoId, timeline }: Props) {
         <p className="text-sm text-muted-foreground">
           그래프를 클릭하면 치지직 다시보기의 해당 구간으로 이동합니다. 총 {timeline.totalChats.toLocaleString()}개의 채팅을
           분석했습니다.
+          <span className="block">10시간이 넘는 영상은 2분 단위로 표시됩니다.</span>
         </p>
       </CardHeader>
       <CardContent>
