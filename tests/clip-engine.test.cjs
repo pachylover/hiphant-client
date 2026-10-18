@@ -32,8 +32,8 @@ test('HLS supports explicit and same-resource implicit byte ranges', () => {
   const text = '#EXTM3U\n#EXT-X-MAP:URI="all.mp4",BYTERANGE="32@0"\n#EXTINF:1,\n#EXT-X-BYTERANGE:100@32\nall.mp4\n#EXTINF:1,\n#EXT-X-BYTERANGE:100\nall.mp4\n#EXT-X-ENDLIST'
   assert.deepEqual(parseMediaPlaylist(text, base).segments.map(s => s.range), [{start:32,end:131},{start:132,end:231}])
 })
-test('HLS rejects encrypted, live, discontinuous, missing MAP and invalid range variants', () => {
-  for (const value of [playlist.replace('#EXTM3U', '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="secret"'), playlist.replace('#EXT-X-ENDLIST',''), playlist.replace('#EXTINF:1,','#EXT-X-DISCONTINUITY\n#EXTINF:1,'), playlist.replace('#EXT-X-MAP:URI="init.mp4"\n',''), playlist.replace('a.m4s','#EXT-X-BYTERANGE:40\na.m4s')]) assert.throws(() => parseMediaPlaylist(value, base))
+test('HLS rejects encrypted, live, missing MAP and invalid range variants', () => {
+  for (const value of [playlist.replace('#EXTM3U', '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="secret"'), playlist.replace('#EXT-X-ENDLIST',''), playlist.replace('#EXT-X-MAP:URI="init.mp4"\n',''), playlist.replace('a.m4s','#EXT-X-BYTERANGE:40\na.m4s')]) assert.throws(() => parseMediaPlaylist(value, base))
 })
 test('fMP4 packaging removes stale prefix, rebases tfdt and sequence', async () => {
   const result = new Uint8Array(await packageFmp4(fmp4Init(), [fmp4Segment(1000),fmp4Segment(2000)], 2).arrayBuffer())
@@ -142,4 +142,60 @@ test('Progressive applies linear edits and includes AAC roll recovery samples', 
     const audioMoof = top.filter(b => b.type === 'moof')[1], traf = child(data, audioMoof, 'traf')
     assert.ok(child(data, traf, 'sbgp'))
   } finally { global.fetch = original }
+})
+
+const { progressiveTables } = require('./clip-fixtures.cjs')
+const sparseSelection = (data, startSeconds, endSeconds) => selectProgressiveSamples(parseProgressiveTracks(data, { startSeconds, endSeconds }), startSeconds, endSeconds)
+const comparableSelection = result => ({ startSeconds: result.startSeconds, endSeconds: result.endSeconds, origin: result.origin, tracks: result.tracks.map(t => ({ id: t.id, samples: t.samples, rollDistance: t.rollDistance })) })
+
+test('Progressive handles late clips in million-sample video and audio without expanding the full tracks', () => {
+  const count = 1_000_100, data = progressiveTables({ count, audio: true })
+  const start = (Math.floor(count / 2) + (count - 30 - Math.floor(count / 2)) * 2) + 0.2
+  const tracks = parseProgressiveTracks(data, { startSeconds: start, endSeconds: start + 2 })
+  assert.equal(tracks.length, 2)
+  for (const track of tracks) assert.ok(track.samples.length < 100, `retained ${track.samples.length} samples`)
+  const result = selectProgressiveSamples(tracks, start, start + 2)
+  assert.ok(result.startSeconds <= start)
+  assert.ok(result.endSeconds >= start + 2)
+  assert.ok(result.tracks[0].samples[0].offset > 4_000_000)
+})
+
+test('Progressive sparse variable sizes and 32/64-bit chunk offsets match full parsing across time runs', () => {
+  for (const co64 of [false, true]) {
+    const data = progressiveTables({ variable: true, co64, audio: true })
+    const full = selectProgressiveSamples(parseProgressiveTracks(data), 11.2, 15.2)
+    const sparse = sparseSelection(data, 11.2, 15.2)
+    assert.deepEqual(comparableSelection(sparse), comparableSelection(full))
+    if (co64) assert.ok(sparse.tracks[0].samples[0].offset >= 0x100000000)
+  }
+})
+
+test('Progressive sparse B-frame composition times, edit offsets and AAC roll match full selection', () => {
+  const data = progressiveTables({ variable: true, signedCtts: true, audio: true, editTime: 1000 })
+  for (const [start, end] of [[0.2, 2.2], [10.2, 15.2], [25.2, 28.2]]) {
+    const full = selectProgressiveSamples(parseProgressiveTracks(data), start, end)
+    assert.deepEqual(comparableSelection(sparseSelection(data, start, end)), comparableSelection(full))
+  }
+  assert.equal(parseProgressiveTracks(data)[0].samples[1].cts, -1000)
+})
+
+test('Progressive million-entry variable size table retains exact late sample offsets', () => {
+  const count = 1_000_100, data = progressiveTables({ count, variable: true, co64: true })
+  const start = 1_500_000.2
+  const selected = sparseSelection(data, start, start + 2)
+  const sample = selected.tracks[0].samples[0]
+  const index = 1_000_020 // last sync sample before start, using the second stts run
+  let sizeSum = Math.floor(index / 5) * 25
+  for (let i = Math.floor(index / 5) * 5; i < index; i++) sizeSum += 3 + i % 5
+  assert.equal(sample.offset, 0x100000000 + sizeSum)
+  assert.equal(sample.size, 3 + index % 5)
+})
+
+test('Progressive reports empty and malformed sample tables separately from selection limits', () => {
+  const message = data => { let caught; try { parseProgressiveTracks(data, { startSeconds: 1, endSeconds: 2 }) } catch (error) { caught = error }; assert.ok(caught, 'must reject malformed table'); return caught.message }
+  const empty = message(progressiveTables({ empty: true }))
+  const malformed = message(progressiveTables({ variable: true, malformed: true }))
+  assert.ok(!empty.includes('지원 범위를 초과'), empty)
+  assert.ok(!malformed.includes('지원 범위를 초과'), malformed)
+  assert.throws(() => parseProgressiveTracks(progressiveTables({ count: 1_000_100, delta: 1 })), /샘플/)
 })

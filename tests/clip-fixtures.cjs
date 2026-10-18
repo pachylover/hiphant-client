@@ -31,3 +31,34 @@ function progressive({ editTime, audioRoll } = {}) {
   return { file: Buffer.concat([ftyp, make(offset), box('mdat', Buffer.from(Array.from({ length: audioRoll ? 80 : 40 }, (_, i) => i)))]), moov: make(offset), mediaOffset: offset }
 }
 module.exports = { box, full, words, fmp4Init, fmp4Segment, progressive }
+
+// Metadata-only fixture: offsets describe hypothetical media, never allocate mdat.
+function progressiveTables({ count = 24, variable = false, co64 = false, audio = false, editTime, signedCtts = false, malformed = false, empty = false, delta = 1000 } = {}) {
+  const sizeAt = i => variable ? 3 + i % 5 : 4
+  const makeTrack = isAudio => {
+    const sizes = variable ? Buffer.alloc(count * 4) : Buffer.alloc(0)
+    if (variable) for (let i = 0; i < count; i++) sizes.writeUInt32BE(sizeAt(i), i * 4)
+    const split = Math.floor(count / 2), chunkSizes = [split, count - split]
+    const offsets = co64 ? Buffer.alloc(16) : Buffer.alloc(8)
+    const firstOffset = (co64 ? 0x100000000 : 10000) + (isAudio ? 100000000 : 0)
+    let secondOffset = firstOffset
+    for (let i = 0; i < split; i++) secondOffset += sizeAt(i)
+    if (co64) { offsets.writeBigUInt64BE(BigInt(firstOffset)); offsets.writeBigUInt64BE(BigInt(secondOffset), 8) }
+    else { offsets.writeUInt32BE(firstOffset); offsets.writeUInt32BE(secondOffset, 4) }
+    const header = tkhd(); if (isAudio) header.writeUInt32BE(2, 20)
+    const handler = full('hdlr', 0, words(0), Buffer.from(isAudio ? 'soun' : 'vide'), Buffer.alloc(12))
+    const sync = []
+    if (!isAudio) for (let i = 1; i <= count; i += 10) sync.push(i)
+    const stbl = box('stbl', isAudio ? full('stsd', 0, words(1), box('mp4a', Buffer.alloc(28))) : stsd(),
+      full('stts', 0, words(2, split, delta, count - split, delta * 2)),
+      full('stsc', 0, words(2, 1, chunkSizes[0], 1, 2, chunkSizes[1], 1)),
+      full('stsz', 0, words(variable ? 0 : 4, empty ? 0 : count + (malformed ? 1 : 0)), sizes),
+      full(co64 ? 'co64' : 'stco', 0, words(2), offsets),
+      ...(signedCtts && !isAudio ? [full('ctts', 0x01000000, words(3, 1, 0, 1, -delta, count - 2, 0))] : []),
+      ...(isAudio ? [full('sgpd', 0x01000000, Buffer.from('roll'), words(2, 1), Buffer.from([255, 255])), full('sbgp', 0, Buffer.from('roll'), words(1, count, 1))] : [full('stss', 0, words(sync.length, ...sync))]))
+    const edits = editTime === undefined ? [] : [box('edts', full('elst', 0, words(1, 10000, editTime, 0x00010000)))]
+    return box('trak', header, ...edits, box('mdia', mdhd(), handler, box('minf', stbl)))
+  }
+  return box('moov', mvhd(), makeTrack(false), ...(audio ? [makeTrack(true)] : []))
+}
+module.exports.progressiveTables = progressiveTables

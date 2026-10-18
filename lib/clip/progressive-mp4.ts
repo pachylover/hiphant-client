@@ -4,6 +4,7 @@ import { concurrentMap, DownloadContext, readAsset } from "./network"
 interface Sample { offset: number; size: number; dts: number; duration: number; cts: number; sync: boolean }
 interface Track { id: number; timescale: number; handler: string; trak: Box; samples: Sample[]; rollDistance?: number; groupDescription?: Uint8Array; groupType?: Uint8Array }
 const METADATA_LIMIT = 32 * 1024 * 1024
+// Limit materialized clip samples, not the full VOD sample count.
 const SAMPLE_LIMIT = 1_000_000
 
 /** Map a single continuous media edit (optionally preceded by an empty delay)
@@ -49,13 +50,25 @@ async function readMetadata(url: string, context: DownloadContext) {
   return { ftyp, moov }
 }
 
-export function parseProgressiveTracks(data: Uint8Array): Track[] {
+export function parseProgressiveTracks(data: Uint8Array, range?: { startSeconds: number; endSeconds: number }): Track[] {
   const moov = boxes(data).find(b => b.type === "moov")
   if (!moov || boxes(data, moov.data, moov.end).some(b => b.type === "mvex")) throw new Error("Progressive MP4 형식이 아닙니다.")
   const v = view(data), tracks: Track[] = []
   const mvhd = child(data, moov, "mvhd")
   const movieScale = v.getUint32(mvhd.data + (data[mvhd.data] === 1 ? 20 : 12))
-  for (const trak of boxes(data, moov.data, moov.end).filter(b => b.type === "trak")) {
+  if (range && (!Number.isFinite(range.startSeconds) || !Number.isFinite(range.endSeconds)
+    || range.startSeconds < 0 || range.endSeconds <= range.startSeconds || range.endSeconds - range.startSeconds > 600)) throw new Error("다운로드 구간이 올바르지 않습니다.")
+  let windowStart = range?.startSeconds, windowEnd = range?.endSeconds
+  const trackBoxes = boxes(data, moov.data, moov.end).filter(b => b.type === "trak")
+  // Video GOP boundaries determine the audio window even if audio appears first.
+  if (range) trackBoxes.sort((a, b) => {
+    const isVideo = (trak: Box) => {
+      const hdlr = child(data, child(data, trak, "mdia"), "hdlr")
+      return String.fromCharCode(...data.subarray(hdlr.data + 8, hdlr.data + 12)) === "vide" ? 1 : 0
+    }
+    return isVideo(b) - isVideo(a)
+  })
+  for (const trak of trackBoxes) {
     const info = trackInfo(data, trak), hdlr = child(data, info.mdia, "hdlr"), handler = String.fromCharCode(...data.subarray(hdlr.data + 8, hdlr.data + 12))
     if (!["vide", "soun"].includes(handler)) throw new Error("영상·오디오 외 트랙이 있는 MP4는 지원하지 않습니다.")
     if (!info.timescale) throw new Error("잘못된 영상 시간 단위입니다.")
@@ -65,8 +78,11 @@ export function parseProgressiveTracks(data: Uint8Array): Track[] {
     const entries = boxes(data, stsd.data + 8, stsd.end)
     if (entries.length !== 1 || !["avc1", "avc3", "hvc1", "hev1", "mp4a"].includes(entries[0].type)) throw new Error("지원하지 않는 코덱 또는 암호화 영상입니다.")
     if (tables.some(b => ["senc", "saiz", "saio"].includes(b.type))) throw new Error("암호화 MP4는 지원하지 않습니다.")
-    const stsz = child(data, stbl, "stsz"), defaultSize = v.getUint32(stsz.data + 4), count = v.getUint32(stsz.data + 8)
-    if (!count || count > SAMPLE_LIMIT || !defaultSize && stsz.data + 12 + count * 4 > stsz.end) throw new Error("영상 샘플 수가 지원 범위를 초과합니다.")
+    const stsz = child(data, stbl, "stsz")
+    if (stsz.data + 12 > stsz.end) throw new Error("MP4 샘플 크기 표가 잘렸습니다.")
+    const defaultSize = v.getUint32(stsz.data + 4), count = v.getUint32(stsz.data + 8)
+    if (!count) throw new Error("영상 또는 오디오 샘플이 없습니다.")
+    if (!defaultSize && stsz.data + 12 + count * 4 > stsz.end) throw new Error("MP4 샘플 크기 표가 잘렸습니다.")
     const groups = tables.filter(b => b.type === "sgpd" || b.type === "sbgp")
     let rollDistance: number | undefined, groupDescription: Uint8Array | undefined, groupType: Uint8Array | undefined
     if (groups.length) {
@@ -87,26 +103,108 @@ export function parseProgressiveTracks(data: Uint8Array): Track[] {
       groupDescription = raw(data, sgpd)
       groupType = data.slice(sgpd.data + 4, sgpd.data + 8)
     }
-    const samples: Sample[] = Array.from({ length: count }, (_, i) => ({ offset: 0, size: defaultSize || v.getUint32(stsz.data + 12 + i * 4), dts: 0, duration: 0, cts: 0, sync: true }))
-    const expand = (table: Box, apply: (s: Sample, value: number) => void, signed = false) => {
-      const entries = v.getUint32(table.data + 4); let index = 0
-      if (table.data + 8 + entries * 8 > table.end) throw new Error("잘못된 MP4 시간 표입니다.")
-      for (let n = 0; n < entries; n++) {
-        const p = table.data + 8 + n * 8, repeat = v.getUint32(p), value = signed ? v.getInt32(p + 4) : v.getUint32(p + 4)
-        if (index + repeat > count) throw new Error("잘못된 MP4 샘플 표입니다.")
-        for (let j = 0; j < repeat; j++) apply(samples[index++], value)
+    const stts = child(data, stbl, "stts"), ctts = tables.find(b => b.type === "ctts"), stss = tables.find(b => b.type === "stss")
+    const validateTimes = (table: Box, timing: boolean) => {
+      if (table.data + 8 > table.end || data[table.data] > (timing ? 0 : 1)) throw new Error("잘못된 MP4 시간 표입니다.")
+      const entries = v.getUint32(table.data + 4)
+      if (table.data + 8 + entries * 8 > table.end) throw new Error("MP4 시간 표가 잘렸습니다.")
+      let total = 0
+      for (let i = 0; i < entries; i++) {
+        const p = table.data + 8 + i * 8, n = v.getUint32(p)
+        if (!n || timing && !v.getUint32(p + 4)) throw new Error("잘못된 MP4 샘플 길이입니다.")
+        total += n
+        if (total > count) throw new Error("잘못된 MP4 샘플 표입니다.")
       }
-      if (index !== count) throw new Error("MP4 샘플 정보가 누락되었습니다.")
+      if (total !== count) throw new Error("MP4 샘플 정보가 누락되었습니다.")
     }
-    let dts = timelineOffset
-    expand(child(data, stbl, "stts"), (sample, value) => { if (!value) throw new Error("잘못된 샘플 길이입니다."); sample.dts = dts; sample.duration = value; dts += value })
-    const ctts = tables.find(b => b.type === "ctts")
-    if (ctts) expand(ctts, (s, value) => { s.cts = value }, data[ctts.data] === 1)
-    const stss = tables.find(b => b.type === "stss")
+    validateTimes(stts, true)
+    if (ctts) validateTimes(ctts, false)
+    // Intersect run-length timing tables without allocating one object per VOD sample.
+    const timingRuns = (visit: (first: number, after: number, dts: number, duration: number, cts: number) => void) => {
+      let index = 0, time = timelineOffset, timingRow = 0, compositionRow = 0, timingLeft = 0, compositionLeft = 0, step = 0, composition = 0
+      while (index < count) {
+        if (!timingLeft) {
+          const p = stts.data + 8 + timingRow++ * 8
+          timingLeft = v.getUint32(p); step = v.getUint32(p + 4)
+        }
+        if (!compositionLeft) {
+          if (ctts) {
+            const p = ctts.data + 8 + compositionRow++ * 8
+            compositionLeft = v.getUint32(p); composition = data[ctts.data] === 1 ? v.getInt32(p + 4) : v.getUint32(p + 4)
+          } else compositionLeft = count
+        }
+        const length = Math.min(timingLeft, compositionLeft), next = time + length * step
+        if (!Number.isSafeInteger(next)) throw new Error("영상 시간 값이 지원 범위를 초과합니다.")
+        visit(index, index + length, time, step, composition)
+        index += length; time = next; timingLeft -= length; compositionLeft -= length
+      }
+    }
+    let syncCount = 0
     if (stss) {
-      samples.forEach(s => { s.sync = false }); const n = v.getUint32(stss.data + 4)
-      if (stss.data + 8 + n * 4 > stss.end) throw new Error("잘못된 키프레임 표입니다.")
-      for (let i = 0; i < n; i++) { const index = v.getUint32(stss.data + 8 + i * 4) - 1; if (!samples[index]) throw new Error("잘못된 키프레임 위치입니다."); samples[index].sync = true }
+      if (stss.data + 8 > stss.end) throw new Error("MP4 키프레임 표가 잘렸습니다.")
+      syncCount = v.getUint32(stss.data + 4)
+      if (stss.data + 8 + syncCount * 4 > stss.end) throw new Error("MP4 키프레임 표가 잘렸습니다.")
+      let previous = 0
+      for (let i = 0; i < syncCount; i++) {
+        const number = v.getUint32(stss.data + 8 + i * 4)
+        if (number <= previous || number > count) throw new Error("잘못된 키프레임 위치입니다.")
+        previous = number
+      }
+    }
+    let firstSample = 0, afterSample = count
+    if (range && windowStart !== undefined && windowEnd !== undefined) {
+      if (handler === "vide") {
+        firstSample = -1
+        let sync = 0
+        timingRuns((first, after, dts, step, cts) => {
+          if (!stss) {
+            const candidate = Math.min(after - 1, first + Math.floor((windowStart! * info.timescale - dts - cts) / step))
+            if (candidate >= first) firstSample = candidate
+          } else while (sync < syncCount) {
+            const index = v.getUint32(stss.data + 8 + sync * 4) - 1
+            if (index >= after) break
+            if ((dts + (index - first) * step + cts) / info.timescale <= windowStart!) firstSample = index
+            sync++
+          }
+        })
+        if (firstSample < 0) throw new Error("요청 구간 앞의 키프레임을 찾을 수 없습니다.")
+        sync = 0
+        timingRuns((first, after, dts, step, cts) => {
+          if (!stss) {
+            const candidate = Math.max(first, firstSample + 1, first + Math.ceil((windowEnd! * info.timescale - dts - cts) / step))
+            if (candidate < after) afterSample = Math.min(afterSample, candidate)
+          } else while (sync < syncCount) {
+            const index = v.getUint32(stss.data + 8 + sync * 4) - 1
+            if (index >= after) break
+            if (index > firstSample && (dts + (index - first) * step + cts) / info.timescale >= windowEnd!) afterSample = Math.min(afterSample, index)
+            sync++
+          }
+        })
+      } else {
+        firstSample = count
+        timingRuns((first, after, dts, step, cts) => {
+          const overlap = Math.max(first, first + Math.floor((windowStart! * info.timescale - dts - cts) / step))
+          if (overlap < after) firstSample = Math.min(firstSample, overlap)
+          const boundary = Math.max(first, first + Math.ceil((windowEnd! * info.timescale - dts - cts) / step))
+          if (boundary < after) afterSample = Math.min(afterSample, boundary)
+        })
+        if (firstSample < count) firstSample = Math.max(0, firstSample + (rollDistance ?? 0))
+      }
+    }
+    const selectedCount = afterSample - firstSample
+    if (selectedCount <= 0) throw new Error("요청 구간의 오디오 또는 영상 샘플이 없습니다.")
+    if (selectedCount > SAMPLE_LIMIT) throw new Error("선택한 구간의 샘플 수가 너무 많습니다. 다운로드 구간을 줄여주세요.")
+    const sampleSize = (index: number) => defaultSize || v.getUint32(stsz.data + 12 + index * 4)
+    const samples: Sample[] = Array.from({ length: selectedCount }, (_, i) => ({ offset: 0, size: sampleSize(firstSample + i), dts: 0, duration: 0, cts: 0, sync: !stss }))
+    timingRuns((first, after, dts, step, cts) => {
+      for (let i = Math.max(firstSample, first); i < Math.min(afterSample, after); i++) {
+        const sample = samples[i - firstSample]
+        sample.dts = dts + (i - first) * step; sample.duration = step; sample.cts = cts
+      }
+    })
+    if (stss) for (let i = 0; i < syncCount; i++) {
+      const index = v.getUint32(stss.data + 8 + i * 4) - 1
+      if (index >= firstSample && index < afterSample) samples[index - firstSample].sync = true
     }
     const offsets = tables.find(b => b.type === "stco" || b.type === "co64"), stsc = child(data, stbl, "stsc")
     if (!offsets) throw new Error("MP4 데이터 위치가 없습니다.")
@@ -118,12 +216,25 @@ export function parseProgressiveTracks(data: Uint8Array): Track[] {
     for (let chunk = 1; chunk <= chunkCount; chunk++) {
       while (mappingIndex + 1 < mapping.length && mapping[mappingIndex + 1].first <= chunk) mappingIndex++
       const p = offsets.data + 8 + (chunk - 1) * width; let offset = width === 8 ? uint64(v, p) : v.getUint32(p)
-      for (let j = 0; j < mapping[mappingIndex].count; j++) {
-        const sample = samples[sampleIndex++]; if (!sample || !sample.size || !Number.isSafeInteger(offset + sample.size)) throw new Error("잘못된 MP4 샘플 위치입니다.")
-        sample.offset = offset; offset += sample.size
+      const chunkSamples = mapping[mappingIndex].count
+      if (sampleIndex + chunkSamples > count) throw new Error("잘못된 MP4 샘플 위치입니다.")
+      const from = Math.max(sampleIndex, firstSample), to = Math.min(sampleIndex + chunkSamples, afterSample)
+      if (from < to) {
+        if (defaultSize) offset += (from - sampleIndex) * defaultSize
+        else for (let i = sampleIndex; i < from; i++) offset += sampleSize(i)
+        for (let i = from; i < to; i++) {
+          const sample = samples[i - firstSample]
+          if (!sample.size || !Number.isSafeInteger(offset + sample.size)) throw new Error("잘못된 MP4 샘플 위치입니다.")
+          sample.offset = offset; offset += sample.size
+        }
       }
+      sampleIndex += chunkSamples
     }
     if (sampleIndex !== count) throw new Error("MP4 샘플 위치가 누락되었습니다.")
+    if (range && handler === "vide") {
+      windowStart = samples.reduce((n, sample) => Math.min(n, (sample.dts + sample.cts) / info.timescale), Infinity)
+      windowEnd = samples.reduce((n, sample) => Math.max(n, (sample.dts + sample.cts + sample.duration) / info.timescale), 0)
+    }
     tracks.push({ id: info.id, timescale: info.timescale, handler, trak, samples, rollDistance, groupDescription, groupType })
   }
   if (!tracks.length || tracks.filter(t => t.handler === "vide").length !== 1 || tracks.filter(t => t.handler === "soun").length > 1) throw new Error("단일 영상 및 오디오 트랙만 지원합니다.")
@@ -181,7 +292,7 @@ function fragment(track: Track, origin: number, sequence: number) {
 export async function downloadProgressive(url: string, start: number, end: number, context: DownloadContext, onPackaging: () => void) {
   const onBytes = context.onBytes
   context.onBytes = undefined
-  const { ftyp, moov } = await readMetadata(url, context), selected = selectProgressiveSamples(parseProgressiveTracks(moov), start, end)
+  const { ftyp, moov } = await readMetadata(url, context), selected = selectProgressiveSamples(parseProgressiveTracks(moov, { startSeconds: start, endSeconds: end }), start, end)
   const bytes = selected.tracks.reduce((n, t) => n + t.samples.reduce((sum, s) => sum + s.size, 0), 0)
   if (bytes > context.maxBytes - context.receivedBytes) throw new Error("예상 다운로드 크기가 제한을 초과합니다. 화질이나 길이를 줄여주세요.")
   context.totalBytes = context.receivedBytes + bytes
