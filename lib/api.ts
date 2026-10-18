@@ -1,7 +1,8 @@
 // API 공통 유틸. 백엔드 응답은 { resultCode, resultMsg, ... } 래퍼를 사용한다.
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+  (typeof window === "undefined" ? process.env.API_INTERNAL_URL : undefined)
+  || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
 export interface ApiResponse {
   resultCode?: number

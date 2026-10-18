@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card"
 import { Clock, Sparkles, ChevronRight, Film } from "lucide-react"
 import { fetchRecentHighlights, fetchVideoThumbnail } from "@/lib/api"
 
-/** 목록과 섬네일을 서버에서 5분 단위로 캐시한다 — 크롤러가 받는 HTML에 그대로 들어간다. */
+/** 섬네일은 5분 캐시하고, 최근 목록은 홈 렌더링마다 조회한다. */
 const REVALIDATE_SECONDS = 300
 
 function formatMinute(minute: number | null): string {
@@ -21,7 +21,7 @@ function formatMinute(minute: number | null): string {
  * 검색엔진이 각 하이라이트 페이지를 그대로 따라갈 수 있다.
  */
 export async function RecentHighlights() {
-  const items = await fetchRecentHighlights(6, REVALIDATE_SECONDS)
+  const items = await fetchRecentHighlights(6)
 
   // 데이터가 없으면 섹션 자체를 감춘다
   if (items.length === 0) return null

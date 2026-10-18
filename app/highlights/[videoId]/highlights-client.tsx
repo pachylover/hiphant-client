@@ -6,6 +6,7 @@ import { Empty, EmptyContent, EmptyTitle, EmptyDescription } from "@/components/
 import { VideoInfoCard } from "@/components/video-info-card"
 import { HighlightList } from "@/components/highlight-list"
 import { HighlightListSkeleton } from "@/components/highlight-list-skeleton"
+import { KeywordHighlightDialog } from "@/components/keyword-highlight-dialog"
 import { ChatSearchDialog } from "@/components/chat-search-dialog"
 import { ChatVolumeChart } from "@/components/chat-volume-chart"
 import { ChannelHighlights } from "@/components/channel-highlights"
@@ -22,6 +23,7 @@ import {
 } from "@/lib/api"
 import {
   fetchVideoAndHighlights,
+  normalizeHighlights,
   type NormalizedHighlight,
   type NormalizedVideoInfo,
 } from "@/lib/highlights"
@@ -181,6 +183,12 @@ export function HighlightsClient({
     }
   }
 
+  const handleKeywordHighlightsAdded = (raw: unknown[]) => {
+    const added = normalizeHighlights(videoId, { duration: videoInfo?.duration }, raw)
+    const ids = new Set(added.map(item => String(item.id)))
+    setHighlightItems(items => [...items.filter(item => !ids.has(String(item.id))), ...added])
+  }
+  const hasAutomaticHighlights = highlightItems.some(item => ["NORMAL", "LAUGH", "QUESTION"].includes(item.highlightType))
   const hasNoChats = timeline !== null && timeline.totalChats === 0
   const isBusy = isProcessing || isReloadingChats || isCreatingHighlights
 
@@ -228,6 +236,8 @@ export function HighlightsClient({
             {isLoading && highlightItems.length === 0 ? (
               <HighlightListSkeleton />
             ) : highlightItems.length === 0 ? (
+              <>
+              <KeywordHighlightDialog videoId={videoId} onHighlightsAdded={handleKeywordHighlightsAdded} />
               <Empty>
                 <EmptyContent>
                   <EmptyTitle>하이라이트가 아직 없습니다</EmptyTitle>
@@ -239,8 +249,20 @@ export function HighlightsClient({
                   </div>
                 </EmptyContent>
               </Empty>
+              </>
             ) : (
-              <HighlightList highlights={highlightItems} />
+              <>
+              {!hasAutomaticHighlights && <Button className="mb-3" onClick={handleCreateHighlights} disabled={isBusy}>자동 하이라이트 생성</Button>}
+              <HighlightList
+                videoId={videoId}
+                onHighlightsAdded={handleKeywordHighlightsAdded}
+                key={videoId}
+                highlights={highlightItems}
+                videoDuration={videoInfo?.duration}
+                videoTitle={videoInfo?.videoTitle}
+                channelName={videoInfo?.channel.channelName}
+              />
+              </>
             )}
           </div>
         </div>

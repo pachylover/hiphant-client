@@ -2,9 +2,8 @@ import { BannerCarousel } from "@/components/banner-carousel"
 import { RecentHighlights } from "@/components/recent-highlights"
 import { VideoUrlForm } from "@/components/video-url-form"
 
-// 최근 하이라이트를 서버에서 렌더링한다(검색엔진이 목록과 링크를 그대로 읽는다).
-// 5분마다 갱신 — 그 사이 요청은 캐시된 HTML 로 응답한다.
-export const revalidate = 300
+// 홈 요청마다 최신 하이라이트 목록을 조회해 서버에서 렌더링한다.
+export const revalidate = 0
 
 export default function HomePage() {
   return (
