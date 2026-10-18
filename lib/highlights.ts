@@ -10,6 +10,9 @@ export interface NormalizedHighlight {
   seconds: number
   videoId: string
   highlightType: string
+  clipStartSeconds: number
+  clipEndSeconds: number
+  clipRangeSource: "api-range" | "minute-fallback"
   raw: any
 }
 
@@ -23,6 +26,16 @@ export interface NormalizedVideoInfo {
   channelId: string | null
   _raw: any
 }
+
+export interface ClipRange {
+  videoId: string
+  startSeconds: number
+  endSeconds: number
+  durationSeconds: number
+  source: "api-range" | "minute-fallback"
+}
+
+const MAX_CLIP_DURATION_SECONDS = 600
 
 export interface VideoAndHighlights {
   videoInfo: NormalizedVideoInfo | null
@@ -68,7 +81,13 @@ function parseHHMMSS(timeStr: string): number | null {
   return null
 }
 
+function clampVideoSeconds(seconds: number, videoDuration: number): number {
+  const nonNegativeSeconds = Math.max(0, Math.floor(seconds))
+  return videoDuration > 0 ? Math.min(videoDuration, nonNegativeSeconds) : nonNegativeSeconds
+}
+
 export function normalizeVideoInfo(videoContent: any): NormalizedVideoInfo {
+
   return {
     thumbnailImageUrl: videoContent.thumbnail || videoContent.thumbnailUrl || videoContent.thumbnailImageUrl,
     channel: { channelName: videoContent.channelName || videoContent.channel?.channelName || "알 수 없음" },
@@ -80,6 +99,57 @@ export function normalizeVideoInfo(videoContent: any): NormalizedVideoInfo {
     videoTitle: videoContent.title || videoContent.videoTitle || "",
     channelId: videoContent.channel?.channelId ?? null,
     _raw: videoContent,
+  }
+}
+
+/** API의 영상 상대 밀리초 구간을 UI에서 사용할 초 단위 구간으로 정규화한다. */
+export function normalizeClipRange(input: {
+  videoId: string
+  start?: unknown
+  end?: unknown
+  minute?: unknown
+  videoDuration?: number | null
+  maxDurationSeconds?: number
+}): ClipRange {
+  const videoDuration =
+    Number.isFinite(input.videoDuration) && Number(input.videoDuration) > 0
+      ? Math.floor(Number(input.videoDuration))
+      : null
+  const maxDuration =
+    Number.isFinite(input.maxDurationSeconds) && Number(input.maxDurationSeconds) > 0
+      ? Math.floor(Number(input.maxDurationSeconds))
+      : MAX_CLIP_DURATION_SECONDS
+  const startMs = Number(input.start)
+  const endMs = Number(input.end)
+  const hasApiRange =
+    input.start !== null &&
+    input.start !== undefined &&
+    input.end !== null &&
+    input.end !== undefined &&
+    Number.isFinite(startMs) &&
+    Number.isFinite(endMs) &&
+    startMs >= 0 &&
+    endMs > startMs
+  const minuteMs = Number(input.minute)
+  const fallbackMinuteMs = Number.isFinite(minuteMs) && minuteMs >= 0 ? minuteMs : 0
+
+  let startSeconds = hasApiRange ? Math.floor(startMs / 1000) : Math.floor(fallbackMinuteMs / 1000) - 30
+  let endSeconds = hasApiRange ? Math.ceil(endMs / 1000) : Math.ceil(fallbackMinuteMs / 1000) + 90
+
+  startSeconds = Math.max(0, startSeconds)
+  if (videoDuration !== null) {
+    startSeconds = Math.min(startSeconds, Math.max(0, videoDuration - 1))
+    endSeconds = Math.min(endSeconds, videoDuration)
+  }
+  endSeconds = Math.max(startSeconds + 1, endSeconds)
+  endSeconds = Math.min(endSeconds, startSeconds + maxDuration)
+
+  return {
+    videoId: input.videoId,
+    startSeconds,
+    endSeconds,
+    durationSeconds: endSeconds - startSeconds,
+    source: hasApiRange ? "api-range" : "minute-fallback",
   }
 }
 
@@ -103,44 +173,33 @@ export function normalizeHighlights(
     if (rawHighlight.minute !== undefined && rawHighlight.minute !== null) {
       const minuteMs = Number(rawHighlight.minute)
       if (!isNaN(minuteMs)) {
-        secondsValue = Math.max(0, Math.min(durationSec, Math.floor(minuteMs / 1000)))
+        secondsValue = clampVideoSeconds(minuteMs / 1000, durationSec)
       }
     }
 
     // 2) numeric timestamp (이미 초 단위로 들어온 경우)
     if (secondsValue === null && typeof rawHighlight.timestamp === "number") {
-      secondsValue = Math.max(0, Math.min(durationSec, Math.floor(rawHighlight.timestamp)))
+      secondsValue = clampVideoSeconds(rawHighlight.timestamp, durationSec)
     }
 
     // 3) timestamp 문자열 (HH:MM:SS 등)
     if (secondsValue === null && typeof rawHighlight.timestamp === "string") {
       const parsed = parseHHMMSS(rawHighlight.timestamp)
-      if (parsed !== null) secondsValue = Math.max(0, Math.min(durationSec, parsed))
+      if (parsed !== null) secondsValue = clampVideoSeconds(parsed, durationSec)
     }
 
-    // 4) fallback: rawHighlight.time
+    // 4) fallback: time은 초, start/end는 영상 기준 상대 밀리초다.
     if (secondsValue === null && (rawHighlight.time || rawHighlight.start || rawHighlight.end)) {
-      const candidate = rawHighlight.time ?? rawHighlight.start ?? rawHighlight.end
-      if (typeof candidate === "number") {
-        // start/end 가 epoch ms 면 영상 시작 기준 오프셋으로 바꾼다
-        if (String(candidate).length >= 12) {
-          const videoStartMs = Number(
-            videoContent?.publishDateAt ??
-              videoContent?.createdAtAt ??
-              Date.parse(videoContent?.publishDate ?? videoContent?.createdAt ?? ""),
-          )
-          if (!isNaN(videoStartMs)) {
-            const offsetSec = Math.round((Number(candidate) - videoStartMs) / 1000)
-            secondsValue = Math.max(0, Math.min(durationSec, offsetSec))
-          } else {
-            secondsValue = Math.max(0, Math.min(durationSec, Math.floor(Number(candidate) / 1000)))
-          }
-        } else {
-          secondsValue = Math.max(0, Math.min(durationSec, Math.floor(Number(candidate))))
+      if (typeof rawHighlight.time === "number") {
+        secondsValue = clampVideoSeconds(rawHighlight.time, durationSec)
+      } else {
+        const rangeCandidate = rawHighlight.start ?? rawHighlight.end
+        if (typeof rangeCandidate === "number") {
+          secondsValue = clampVideoSeconds(rangeCandidate / 1000, durationSec)
+        } else if (typeof rawHighlight.time === "string") {
+          const parsed = parseHHMMSS(rawHighlight.time)
+          if (parsed !== null) secondsValue = clampVideoSeconds(parsed, durationSec)
         }
-      } else if (typeof candidate === "string") {
-        const parsed = parseHHMMSS(candidate)
-        if (parsed !== null) secondsValue = Math.max(0, Math.min(durationSec, parsed))
       }
     }
 
@@ -151,14 +210,27 @@ export function normalizeHighlights(
           ? rawHighlight.timestamp
           : "00:00:00"
 
+    const clipRange = normalizeClipRange({
+      videoId,
+      start: rawHighlight.start,
+      end: rawHighlight.end,
+      minute: rawHighlight.minute,
+      videoDuration: durationSec,
+    })
+
     return {
       // DB PK가 bigserial 이면 숫자(id)가 들어온다 — 가능하면 숫자로 유지한다
       id: typeof rawHighlight.id === "number" ? rawHighlight.id : rawHighlight.taskId ?? rawHighlight.id ?? String(idx + 1),
       timestamp: displayTimestamp,
-      title: rawHighlight.title ?? rawHighlight.summary ?? rawHighlight.name ?? "하이라이트",
+      title: rawHighlight.highlightType === "KEYWORD" && rawHighlight.keyword && Number.isFinite(rawHighlight.chatCount)
+        ? `${rawHighlight.chatCount}개의 ${rawHighlight.keyword} 채팅이 발생한 구간`
+        : rawHighlight.title ?? rawHighlight.summary ?? rawHighlight.name ?? "하이라이트",
       seconds: secondsValue ?? 0,
       videoId,
       highlightType: rawHighlight.highlightType ?? "NORMAL",
+      clipStartSeconds: clipRange.startSeconds,
+      clipEndSeconds: clipRange.endSeconds,
+      clipRangeSource: clipRange.source,
       raw: rawHighlight,
     }
   })

@@ -9,6 +9,7 @@ import { Footer } from "@/components/footer"
 import { AnnouncementBar } from "@/components/announcement-bar"
 import { Suspense } from "react"
 import { SITE_URL } from "@/lib/site"
+import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -86,6 +87,7 @@ export default function RootLayout({
           </Suspense>
         </div>
         <Analytics />
+        <Toaster />
         <SpeedInsights />
       </body>
     </html>
