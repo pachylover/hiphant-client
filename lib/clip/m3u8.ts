@@ -1,6 +1,8 @@
 export interface MediaAsset { url: string; range?: { start: number; end: number } }
 export interface MediaSegment extends MediaAsset { startSeconds: number; endSeconds: number; init: MediaAsset; period: number }
 export interface MediaPlaylist { init: MediaAsset; segments: MediaSegment[] }
+// Match SafeMediaClient.MAX_TEXT_BYTES; this is UTF-8 bytes, not UTF-16 characters.
+const PLAYLIST_LIMIT_BYTES = 16 * 1024 * 1024
 function mediaUrl(value: string, baseUrl: string): string {
   let url: URL
   try { url = new URL(value, baseUrl) } catch { throw new Error("미디어 주소가 올바르지 않습니다.") }
@@ -15,7 +17,8 @@ function byteRange(value: string, previousEnd?: number) {
   return { start, end: start + length - 1 }
 }
 export function parseMediaPlaylist(text: string, baseUrl: string): MediaPlaylist {
-  if (text.length > 2 * 1024 * 1024 || !text.trimStart().startsWith("#EXTM3U")) throw new Error("올바른 HLS 목록이 아닙니다.")
+  if (text.length > PLAYLIST_LIMIT_BYTES || new TextEncoder().encode(text).byteLength > PLAYLIST_LIMIT_BYTES) throw new Error("HLS 목록이 지원 용량(16MiB)을 초과합니다.")
+  if (!text.trimStart().startsWith("#EXTM3U")) throw new Error("올바른 HLS 목록이 아닙니다.")
   if (!text.includes("#EXT-X-ENDLIST")) throw new Error("완료된 VOD만 다운로드할 수 있습니다.")
   let init: MediaAsset | undefined, firstInit: MediaAsset | undefined, period = 0, seconds = 0, pendingDuration: number | undefined, pendingRange: string | undefined
   const segments: MediaSegment[] = []

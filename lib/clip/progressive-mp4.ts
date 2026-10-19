@@ -3,7 +3,9 @@ import { concurrentMap, DownloadContext, readAsset } from "./network"
 
 interface Sample { offset: number; size: number; dts: number; duration: number; cts: number; sync: boolean }
 interface Track { id: number; timescale: number; handler: string; trak: Box; samples: Sample[]; rollDistance?: number; groupDescription?: Uint8Array; groupType?: Uint8Array }
-const METADATA_LIMIT = 32 * 1024 * 1024
+// Long VOD sample tables can exceed 32 MiB even for a short selected clip.
+const METADATA_LIMIT = 128 * 1024 * 1024
+const METADATA_CHUNK_BYTES = 4 * 1024 * 1024
 // Limit materialized clip samples, not the full VOD sample count.
 const SAMPLE_LIMIT = 1_000_000
 
@@ -41,7 +43,13 @@ async function readMetadata(url: string, context: DownloadContext) {
     if (size < (shortSize === 1 ? 16 : 8) || !Number.isSafeInteger(position + size)) throw new Error("지원하지 않는 MP4 파일 구조입니다.")
     if (type === "ftyp" || type === "moov") {
       if (size > METADATA_LIMIT) throw new Error("영상 메타데이터가 너무 큽니다.")
-      const data = await readAsset({ url, range: { start: position, end: position + size - 1 } }, context, METADATA_LIMIT)
+      if (size > context.maxBytes - context.receivedBytes) throw new Error("영상이 브라우저 다운로드 용량 제한을 초과합니다. 화질이나 길이를 줄여주세요.")
+      // Bound transient network buffers while retaining one contiguous table for parsing.
+      const data = new Uint8Array(size)
+      for (let offset = 0; offset < size; offset += METADATA_CHUNK_BYTES) {
+        const length = Math.min(METADATA_CHUNK_BYTES, size - offset)
+        data.set(await readAsset({ url, range: { start: position + offset, end: position + offset + length - 1 } }, context, length), offset)
+      }
       if (type === "ftyp") ftyp = data; else moov = data
     }
     position += size
