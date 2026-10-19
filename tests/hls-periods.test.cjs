@@ -54,3 +54,36 @@ test('HLS download uses selected period init and rejects crossing before fetchin
   assert.equal(requests.length,0)
  } finally { global.fetch = original }
 })
+
+test('HLS accepts exactly 16 MiB and distinguishes byte limit from invalid format', () => {
+ const limit = 16 * 1024 * 1024
+ const boundary = text + '#' + 'x'.repeat(limit - Buffer.byteLength(text) - 1)
+ assert.equal(Buffer.byteLength(boundary), limit)
+ assert.equal(parseMediaPlaylist(boundary, base).segments.length, 3)
+ assert.throws(() => parseMediaPlaylist(boundary + 'x', base), /지원 용량/)
+ const unicode = text + '#' + '가'.repeat(Math.ceil(limit / 3))
+ assert.ok(unicode.length < limit)
+ assert.throws(() => parseMediaPlaylist(unicode, base), /지원 용량/)
+ assert.throws(() => parseMediaPlaylist('<html>invalid</html>', base), /올바른 HLS 목록이 아닙니다/)
+})
+
+test('HLS downloads a short range from a long playlist exceeding the old 2 MiB cap', async () => {
+ const count = 20_000
+ const longPlaylist = '#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\n' +
+  Array.from({length: count}, (_, i) => `#EXTINF:2,\n${'segment-'.repeat(12)}${i}.m4s\n`).join('') + '#EXT-X-ENDLIST\n'
+ assert.ok(Buffer.byteLength(longPlaylist) > 2 * 1024 * 1024)
+ const original = global.fetch, requests = []
+ global.fetch = async url => {
+  requests.push(String(url))
+  return new Response(String(url).endsWith('init.mp4') ? fmp4Init() : fmp4Segment(2000))
+ }
+ try {
+  const result = await downloadClip({source:{mode:'HLS_FMP4',playlist:longPlaylist,baseUrl:base},
+   startSeconds:2,endSeconds:4,signal:new AbortController().signal,maxBytes:1024*1024})
+  assert.deepEqual([result.startSeconds,result.endSeconds],[2,4])
+  assert.ok(result.blob.size > 0)
+  assert.equal(requests.length,2)
+  assert.ok(requests[0].endsWith('/init.mp4'))
+  assert.ok(requests[1].endsWith('segment-1.m4s'))
+ } finally { global.fetch = original }
+})

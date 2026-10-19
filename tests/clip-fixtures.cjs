@@ -18,7 +18,7 @@ function fmp4Segment(decodeTime = 0) {
   const first = make(0)
   return Buffer.concat([box('styp', Buffer.from('msdh'), words(0), Buffer.from('msdh')), make(first.length + 8), box('mdat', Buffer.from([1,2,3,4]))])
 }
-function progressive({ editTime, audioRoll } = {}) {
+function progressive({ editTime, audioRoll, metadataPadding = 0 } = {}) {
   const stbl = (offset, audio) => box('stbl', audio ? full('stsd', 0, words(1), box('mp4a', Buffer.alloc(28))) : stsd(), full('stts', 0, words(1, 10, 1000)), full('stsc', 0, words(1, 1, 10, 1)), full('stsz', 0, words(4, 10)), full('stco', 0, words(1, offset)), ...(audio ? [full('sgpd', 0x01000000, Buffer.from('roll'), words(2, 1), Buffer.from([255, 255])), full('sbgp', 0, Buffer.from('roll'), words(1, 10, 1))] : [full('stss', 0, words(5, 1, 3, 5, 7, 9))]))
   const editedTrack = (offset, audio = false) => {
     const header = tkhd(); if (audio) header.writeUInt32BE(2, 20)
@@ -26,7 +26,7 @@ function progressive({ editTime, audioRoll } = {}) {
     const edit = editTime === undefined ? [] : [box('edts', full('elst', 0, words(1, 10000, editTime, 0x00010000)))]
     return box('trak', header, ...edit, box('mdia', mdhd(), handler, box('minf', stbl(offset, audio))))
   }
-  const make = offset => box('moov', mvhd(), editedTrack(offset), ...(audioRoll ? [editedTrack(offset + 40, true)] : []))
+  const make = offset => box('moov', ...(metadataPadding ? [box('free', Buffer.alloc(metadataPadding))] : []), mvhd(), editedTrack(offset), ...(audioRoll ? [editedTrack(offset + 40, true)] : []))
   const moov = make(0), offset = ftyp.length + moov.length + 8
   return { file: Buffer.concat([ftyp, make(offset), box('mdat', Buffer.from(Array.from({ length: audioRoll ? 80 : 40 }, (_, i) => i)))]), moov: make(offset), mediaOffset: offset }
 }

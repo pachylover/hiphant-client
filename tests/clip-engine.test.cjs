@@ -199,3 +199,37 @@ test('Progressive reports empty and malformed sample tables separately from sele
   assert.ok(!malformed.includes('지원 범위를 초과'), malformed)
   assert.throws(() => parseProgressiveTracks(progressiveTables({ count: 1_000_100, delta: 1 })), /샘플/)
 })
+
+test('Progressive downloads with metadata over 64 MiB using bounded range requests', async () => {
+  const fixture = progressive({ metadataPadding: 65 * 1024 * 1024 }), requests = [], original = global.fetch
+  global.fetch = async (_url, init) => {
+    const [, a, b] = /^bytes=(\d+)-(\d+)$/.exec(init.headers.Range)
+    const start = Number(a), end = Number(b); requests.push([start, end])
+    return new Response(fixture.file.subarray(start, end + 1), { status: 206 })
+  }
+  try {
+    const result = await downloadClip(options({ mode: 'PROGRESSIVE_MP4', url: 'https://media.example.test/file.mp4' },
+      { startSeconds: 3.2, endSeconds: 4.2, maxBytes: 128 * 1024 * 1024 }))
+    assert.deepEqual([result.startSeconds, result.endSeconds], [2, 6])
+    assert.ok(requests.every(([start, end]) => end - start + 1 <= 4 * 1024 * 1024))
+    assert.deepEqual(requests.at(-1), [fixture.mediaOffset + 8, fixture.mediaOffset + 23])
+    assert.ok(result.blob.size < 4096)
+  } finally { global.fetch = original }
+})
+
+test('Progressive rejects metadata above cap before requesting its body', async () => {
+  const fixture = progressive(), original = global.fetch
+  let requests = 0
+  global.fetch = async (_url, init) => {
+    requests++
+    const [, a, b] = /^bytes=(\d+)-(\d+)$/.exec(init.headers.Range)
+    const start = Number(a), end = Number(b)
+    const bytes = Buffer.from(fixture.file.subarray(start, end + 1))
+    if (bytes.toString('ascii', 4, 8) === 'moov') bytes.writeUInt32BE(128 * 1024 * 1024 + 1)
+    return new Response(bytes, { status: 206 })
+  }
+  try {
+    await assert.rejects(downloadClip(options({ mode: 'PROGRESSIVE_MP4', url: 'https://media.example.test/file.mp4' })), /메타데이터가 너무 큽니다/)
+    assert.equal(requests, 3)
+  } finally { global.fetch = original }
+})
