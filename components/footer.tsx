@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { LoadingLink as Link } from "@/components/loading-link"
 
 export function Footer() {
   return (

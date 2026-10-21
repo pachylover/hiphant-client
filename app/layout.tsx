@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { LoadingState } from "@/components/loading-state"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { AnnouncementBar } from "@/components/announcement-bar"
@@ -78,7 +79,7 @@ export default function RootLayout({
       </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
         <div className="flex min-h-screen flex-col">
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={<LoadingState className="min-h-[60vh]" />}>
             <Header />
             <AnnouncementBar />
             <main className="flex-1">{children}</main>

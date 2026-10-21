@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
+import { LoadingLink as Link } from "@/components/loading-link"
 import { Search, ChevronRight } from "lucide-react"
+import { LoadingState } from "@/components/loading-state"
 import { Input } from "@/components/ui/input"
 import { searchStreamers, type Streamer } from "@/lib/api"
 
@@ -35,8 +36,8 @@ export function StreamerSearch() {
       <Search aria-hidden="true" className="absolute left-4 top-4 h-5 w-5 text-muted-foreground" />
       <Input aria-label="스트리머 닉네임 검색" placeholder="스트리머 닉네임 검색" value={query} onChange={e => setQuery(e.target.value)} className="h-13 pl-12" maxLength={100} />
     </div>
-    <div aria-live="polite" aria-busy={loading}>
-      {loading ? <p className="text-sm text-muted-foreground">스트리머를 불러오는 중...</p> : error ? <p className="text-sm text-destructive">스트리머를 불러오지 못했습니다. <button className="underline" onClick={() => setAttempt(n => n + 1)}>다시 시도</button></p> : !items.length ? <p className="text-sm text-muted-foreground">{query.trim() ? "검색 결과가 없습니다." : "등록된 스트리머가 없습니다."}</p> : <ul className="flex flex-wrap gap-2">
+    <div aria-busy={loading}>
+      {loading ? <LoadingState label="스트리머를 불러오는 중입니다" className="justify-start py-1" /> : error ? <p className="text-sm text-destructive">스트리머를 불러오지 못했습니다. <button className="underline" onClick={() => setAttempt(n => n + 1)}>다시 시도</button></p> : !items.length ? <p className="text-sm text-muted-foreground">{query.trim() ? "검색 결과가 없습니다." : "등록된 스트리머가 없습니다."}</p> : <ul className="flex flex-wrap gap-2">
         {items.map(item => <li key={item.channelId}><Link href={`/highlights?${new URLSearchParams({ channelId: item.channelId })}`} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm hover:border-accent hover:text-accent">{item.channelName}<ChevronRight className="h-3 w-3" /></Link></li>)}
       </ul>}
     </div>

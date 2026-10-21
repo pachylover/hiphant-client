@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { LoadingState } from "@/components/loading-state"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
 import { VideoInfoCard } from "@/components/video-info-card"
@@ -226,6 +227,8 @@ export function HighlightsClient({
 
         {/* 진행 상황 스트리밍 */}
         <HighlightProgress progress={progress} />
+        {isBusy && !progress && <LoadingState label={isReloadingChats ? "채팅 수집을 준비하는 중입니다" : "하이라이트 생성을 준비하는 중입니다"} className="rounded-xl border bg-card" />}
+        {isLoading && <LoadingState label="하이라이트 정보를 불러오는 중입니다" />}
 
         <div className="grid gap-8 lg:grid-cols-5">
           <div className="lg:col-span-2">
@@ -269,7 +272,7 @@ export function HighlightsClient({
 
         {/* 분당 채팅량 그래프 */}
         {isTimelineLoading ? (
-          <Skeleton className="h-[340px] w-full rounded-xl" />
+          <div aria-busy="true"><LoadingState label="채팅 분포를 불러오는 중입니다" /><Skeleton aria-hidden="true" className="h-[340px] w-full rounded-xl" /></div>
         ) : hasNoChats ? (
           <Empty>
             <EmptyContent>

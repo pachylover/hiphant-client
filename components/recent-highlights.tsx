@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { LoadingLink as Link } from "@/components/loading-link"
 import { Card } from "@/components/ui/card"
 import { Clock, Sparkles, ChevronRight, Film } from "lucide-react"
 import { fetchRecentHighlights, fetchVideoThumbnail } from "@/lib/api"

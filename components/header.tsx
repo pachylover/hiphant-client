@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import Link from "next/link"
+import { LoadingLink as Link } from "@/components/loading-link"
 import { Moon, Sun, Menu, Bell, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "@/hooks/use-theme"

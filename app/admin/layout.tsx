@@ -3,8 +3,9 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import Link from "next/link"
-import { LayoutDashboard, ImageIcon, Megaphone, UserX, LogOut, Loader2 } from "lucide-react"
+import { LoadingLink as Link } from "@/components/loading-link"
+import { LayoutDashboard, ImageIcon, Megaphone, UserX, LogOut } from "lucide-react"
+import { LoadingState } from "@/components/loading-state"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { verifyToken, clearToken } from "@/lib/admin-auth"
@@ -53,7 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!checked) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <LoadingState label="관리자 권한을 확인하는 중입니다" />
       </div>
     )
   }

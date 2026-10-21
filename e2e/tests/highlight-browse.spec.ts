@@ -100,3 +100,62 @@ test('스트리머·이름 검색·분석 화면 메타데이터와 noindex', as
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', await page.title())
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex, follow')
 })
+
+
+test('느린 페이지 이동과 이름 검색 동안 로딩 레이어 표시 및 해제', async ({ page }) => {
+  await page.goto('/highlights')
+  await expect(page.locator('main a[href^="/highlights/"]')).toHaveCount(12)
+  await page.getByRole('link', { name: '다음', exact: true }).click()
+  await expect(page.locator('[data-loading-overlay], [data-page-loading]').first()).toBeVisible()
+  await expect(page.locator('main a[href^="/highlights/"]')).toHaveCount(3)
+  await expect(page.locator('[data-loading-overlay], [data-page-loading]').first()).toHaveCount(0)
+  await page.getByRole('textbox', { name: '스트리머 이름 검색' }).fill('지연')
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await expect(page.locator('[data-loading-overlay], [data-page-loading]').first()).toBeVisible()
+  await expect(page.getByText('검색 결과가 없습니다.', { exact: true })).toBeVisible()
+  await expect(page.locator('[data-loading-overlay], [data-page-loading]').first()).toHaveCount(0)
+  await page.getByRole('textbox', { name: '스트리머 이름 검색' }).fill('오류')
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await expect(page.locator('main').getByRole('alert')).toBeVisible()
+  await expect(page.locator('[data-loading-overlay], [data-page-loading]').first()).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '검색', exact: true })).toBeEnabled()
+})
+
+test('느린 영상 정보 조회 동안 로딩 표시, 실패 후 해제', async ({ page }) => {
+  let complete!: () => void
+  const gate = new Promise<void>(resolve => { complete = resolve })
+  await page.route('**/v1/videos/123', async route => {
+    await gate
+    await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
+  })
+  page.on('dialog', dialog => dialog.dismiss())
+  await page.goto('/video/123')
+  await expect(page.getByRole('status').filter({ hasText: '방송 정보를 불러오는 중입니다' })).toBeVisible()
+  complete()
+  await expect(page.getByText('다시보기를 찾지 못했어요 :(')).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: '방송 정보를 불러오는 중입니다' })).toHaveCount(0)
+})
+
+
+test('빈 검색어와 동일 주소 재검색이 완료되고 로딩이 해제된다', async ({ page }) => {
+  await page.goto('/highlights?query=')
+  await expect(page.locator('main a[href^="/highlights/"]')).toHaveCount(12)
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await expect(page.locator('[data-loading-overlay], [data-page-loading]')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '검색', exact: true })).toBeEnabled()
+  await expect(page.locator('main a[href^="/highlights/"]')).toHaveCount(12)
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  await expect(page.locator('[data-loading-overlay], [data-page-loading]')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '검색', exact: true })).toBeEnabled()
+  const response = await page.request.get('/highlights?query=&_rsc=1amjy', { headers: { RSC: '1' }, timeout: 10000 })
+  expect(response.status()).toBe(200)
+  expect(await response.text()).toContain('생성된 하이라이트')
+})
+
+
+test('목록 API가 응답하지 않아도 제한 시간 후 오류 표시 및 로딩 해제', async ({ page }) => {
+  await page.goto('/highlights?query=타임아웃', { waitUntil: 'domcontentloaded' })
+  await expect(page.locator('main').getByRole('alert')).toContainText('목록을 불러오지 못했습니다.', { timeout: 20000 })
+  await expect(page.locator('[data-loading-overlay], [data-page-loading]')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '검색', exact: true })).toBeEnabled()
+})
