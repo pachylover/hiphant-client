@@ -1,14 +1,6 @@
 import { BannerCarousel } from "@/components/banner-carousel"
 import { RecentHighlights } from "@/components/recent-highlights"
 import { VideoUrlForm } from "@/components/video-url-form"
-import { StreamerSearch } from "@/components/streamer-search"
-import { createPageMetadata } from "@/lib/metadata"
-
-export const metadata = createPageMetadata({
-  title: "HiPhant - 치지직 다시보기 하이라이트 분석기",
-  description: "치지직 다시보기 URL로 채팅이 몰린 하이라이트를 분석하고, 스트리머 이름으로 이미 생성된 방송 하이라이트를 찾아보세요.",
-  path: "/",
-})
 
 // 홈 요청마다 최신 하이라이트 목록을 조회해 서버에서 렌더링한다.
 export const revalidate = 0
@@ -31,10 +23,6 @@ export default function HomePage() {
         </div>
 
         <VideoUrlForm />
-
-        <section id="streamers" aria-label="스트리머 찾기" className="scroll-mt-24 border-t border-border/50 pt-8">
-          <StreamerSearch />
-        </section>
       </div>
 
       <div className="w-full max-w-5xl">

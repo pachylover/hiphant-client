@@ -34,14 +34,9 @@ export async function RecentHighlights() {
 
   return (
     <section className="w-full">
-      <div className="mb-5 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-accent" />
-          <h2 className="text-xl font-bold">최근 생성된 하이라이트</h2>
-        </div>
-        <Link href="/highlights" className="shrink-0 text-sm text-muted-foreground hover:text-accent">
-          전체보기 →
-        </Link>
+      <div className="mb-5 flex items-center gap-2">
+        <Sparkles className="h-5 w-5 text-accent" />
+        <h2 className="text-xl font-bold">최근 생성된 하이라이트</h2>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
