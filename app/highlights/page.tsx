@@ -1,5 +1,7 @@
-import Link from "next/link"
-import { cache } from "react"
+import { LoadingLink as Link } from "@/components/loading-link"
+import { cache, Suspense } from "react"
+import { PageLoading } from "@/components/page-loading"
+import { NavigationForm } from "@/components/navigation-form"
 import { createPageMetadata } from "@/lib/metadata"
 import { HighlightCards } from "@/components/highlight-cards"
 import { fetchHighlightPage } from "@/lib/api"
@@ -47,17 +49,23 @@ export async function generateMetadata({ searchParams }: PageProps) {
 }
 
 export default async function HighlightsPage({ searchParams }: PageProps) {
-  const { query, channelId, page } = normalizeParams(await searchParams)
+  const params = normalizeParams(await searchParams)
+  return <Suspense key={JSON.stringify(params)} fallback={<PageLoading label="하이라이트 목록을 불러오는 중입니다" />}>
+    <HighlightResults {...params} />
+  </Suspense>
+}
+
+async function HighlightResults({ query, channelId, page }: ReturnType<typeof normalizeParams>) {
   const result = await loadHighlights(query, channelId, page)
   const pageLink = (index: number) => `/highlights?${new URLSearchParams({ query, ...(channelId ? { channelId } : {}), page: String(index + 1) })}`
   return <div className="container mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
     <div><h1 className="text-2xl font-bold">생성된 하이라이트</h1><p className="mt-2 text-sm text-muted-foreground">{channelId ? "선택한 스트리머의 방송을 최신 생성순으로 확인하세요." : "하이라이트가 생성된 방송을 최신순으로 확인하세요."}</p></div>
-    <form action="/highlights" className="flex flex-wrap gap-2">
+    <NavigationForm key={`${query}:${channelId}`} action="/highlights" loadingLabel="하이라이트를 검색하는 중입니다" className="flex flex-wrap gap-2">
       {channelId && <input type="hidden" name="channelId" value={channelId} />}
       <input aria-label="스트리머 이름 검색" name="query" defaultValue={query} maxLength={100} placeholder="스트리머 이름 검색" className="h-11 min-w-0 flex-1 rounded-lg border bg-background px-4 text-sm" />
       <button className="rounded-lg bg-accent px-5 text-sm font-medium text-accent-foreground">검색</button>
-      {(query || channelId) && <a href="/highlights" className="self-center px-2 text-sm underline">전체 목록</a>}
-    </form>
+      {(query || channelId) && <Link href="/highlights?query=&page=1" className="self-center px-2 text-sm underline">전체 목록</Link>}
+    </NavigationForm>
     {!result ? <div role="alert" className="rounded-xl border p-8 text-center"><p>목록을 불러오지 못했습니다.</p><Link href={pageLink(page)} className="mt-3 inline-block underline">다시 시도</Link></div> : <>
       <p className="text-sm text-muted-foreground">총 {result.total}개 방송</p>
       {result.list.length ? <HighlightCards items={result.list} /> : <p className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">{query || channelId ? "검색 결과가 없습니다." : "아직 생성된 하이라이트가 없습니다."}</p>}

@@ -15,3 +15,5 @@ builds before running the suite because it uses the repository's `.next` directo
 
 Covers the existing homepage layout, streamer search placement and results,
 highlight pagination, empty/error states, mobile navigation, and page metadata.
+Delayed-response cases verify navigation overlays, empty-query resubmission,
+video loading failures, and the 15-second highlight-list request timeout.

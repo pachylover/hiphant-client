@@ -2,10 +2,11 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { LoadingOverlay } from "@/components/loading-state"
 import { Search } from "lucide-react"
 
 function isValidUrl(url: string): boolean {
@@ -22,30 +23,20 @@ function isValidUrl(url: string): boolean {
 /** 홈의 URL 입력 폼. 홈 자체는 서버 렌더링되고 이 부분만 클라이언트에서 동작한다. */
 export function VideoUrlForm() {
   const [url, setUrl] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, startTransition] = useTransition()
   const router = useRouter()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!url.trim()) return
-
-    setIsLoading(true)
-
-    const videoId = url.split("/").pop()
-    if (!videoId) {
-      setIsLoading(false)
-      alert("유효한 치지직 다시보기 URL을 입력하세요")
-      return
-    }
-
-    // 처리 완료 후 결과 페이지로 이동
-    setTimeout(() => {
-      router.push(`/video/${videoId}`)
-    }, 500)
+    if (isLoading || !isValidUrl(url)) return
+    const videoId = new URL(url).pathname.split("/")[2]
+    if (!videoId) return
+    startTransition(() => router.push(`/video/${encodeURIComponent(videoId)}`))
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} aria-busy={isLoading} className="space-y-4">
+      {isLoading && <LoadingOverlay label="방송 분석 화면으로 이동하는 중입니다" />}
       <div className="relative">
         <Input
           type="text"

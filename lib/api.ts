@@ -310,7 +310,10 @@ export async function searchStreamers(query: string, signal?: AbortSignal): Prom
 
 export async function fetchHighlightPage(params: { query?: string; channelId?: string; page?: number; size?: number }): Promise<PageResult<RecentHighlight>> {
   const qs = new URLSearchParams({ query: params.query ?? "", channelId: params.channelId ?? "", page: String(params.page ?? 0), size: String(params.size ?? 12) })
-  const res = await fetch(`${API_BASE_URL}/v1/highlights?${qs}`, { cache: "no-store" })
+  const res = await fetch(`${API_BASE_URL}/v1/highlights?${qs}`, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  })
   if (!res.ok) throw new Error("하이라이트 목록을 불러오지 못했습니다")
   return res.json()
 }

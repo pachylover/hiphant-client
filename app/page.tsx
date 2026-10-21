@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+import { LoadingState } from "@/components/loading-state"
 import { BannerCarousel } from "@/components/banner-carousel"
 import { RecentHighlights } from "@/components/recent-highlights"
 import { VideoUrlForm } from "@/components/video-url-form"
@@ -38,7 +40,7 @@ export default function HomePage() {
       </div>
 
       <div className="w-full max-w-5xl">
-        <RecentHighlights />
+        <Suspense fallback={<LoadingState label="최근 하이라이트를 불러오는 중입니다" />}><RecentHighlights /></Suspense>
       </div>
     </div>
   )

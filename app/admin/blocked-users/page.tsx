@@ -1,5 +1,6 @@
 "use client"
 
+import { LoadingState } from "@/components/loading-state"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -158,7 +159,8 @@ export default function AdminBlockedUsersPage() {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {loading ? (
-        <div className="space-y-3">
+        <div aria-busy="true" className="space-y-3">
+          <LoadingState label="목록을 불러오는 중입니다" />
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
@@ -266,6 +268,7 @@ export default function AdminBlockedUsersPage() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               취소
             </Button>
+            {saving && <LoadingState label="변경 내용을 저장하는 중입니다" className="py-0" />}
             <Button onClick={save} disabled={saving} className="bg-destructive text-white hover:bg-destructive/90">
               {saving ? "처리 중..." : "등록하고 채팅 삭제"}
             </Button>

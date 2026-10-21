@@ -1,7 +1,7 @@
-import Link from "next/link"
+import { LoadingLink as Link } from "@/components/loading-link"
 import { Card } from "@/components/ui/card"
 import { Clock, ChevronRight, Film } from "lucide-react"
-import { fetchVideoThumbnail, type RecentHighlight } from "@/lib/api"
+import type { RecentHighlight } from "@/lib/api"
 
 function formatMinute(minute: number | null): string {
   if (minute == null) return "00:00"
@@ -13,14 +13,11 @@ function formatMinute(minute: number | null): string {
   return parts.map((p) => String(p).padStart(2, "0")).join(":")
 }
 
-export async function HighlightCards({ items }: { items: RecentHighlight[] }) {
-  const thumbs = Object.fromEntries(await Promise.all(items.map(async h =>
-    [h.videoId, h.thumbnailImageUrl ?? await fetchVideoThumbnail(h.videoId, 300)] as const,
-  )))
+export function HighlightCards({ items }: { items: RecentHighlight[] }) {
   return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((h) => {
-          const thumb = thumbs[h.videoId]
+          const thumb = h.thumbnailImageUrl
           const title = h.videoTitle ?? "하이라이트"
           return (
             <Link key={h.id} href={`/highlights/${encodeURIComponent(h.videoId)}`} className="group">

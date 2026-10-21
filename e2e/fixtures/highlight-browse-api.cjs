@@ -20,5 +20,9 @@ http.createServer((req, res) => {
     const list = streamers.filter(item => item.channelName.includes(query))
     body = { resultCode: 200, list, count: list.length }
   }
-  res.end(JSON.stringify(body))
+  const delayed = (url.pathname === '/api/v1/highlights' &&
+    (url.searchParams.get('page') === '1' || query === '지연'))
+  if (query === '타임아웃') setTimeout(() => res.end(JSON.stringify(body)), 20000)
+  else if (delayed) setTimeout(() => res.end(JSON.stringify(body)), 1500)
+  else res.end(JSON.stringify(body))
 }).listen(18082, '127.0.0.1', () => console.log('Browse fixture API ready'))

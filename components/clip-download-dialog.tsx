@@ -1,5 +1,6 @@
 "use client"
 
+import { LoadingState } from "@/components/loading-state"
 import { useEffect, useRef, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -253,7 +254,7 @@ export function ClipDownloadDialog(props: Props) {
               <p>예상 파일 크기: {selected?.estimatedBytes != null ? bytesLabel(selected.estimatedBytes) : "확인 중 (실제 수신량에도 용량 제한 적용)"}</p>
             </div>
           )}
-          <p role="status" aria-live="polite">{labels[phase]}</p>
+          {busy ? <LoadingState label={labels[phase]} className="justify-start py-1" /> : <p role="status" aria-live="polite">{labels[phase]}</p>}
           <Progress value={progress} aria-label="다운로드 진행률" />
           {error && <p role="alert" className="text-destructive break-words">{error}</p>}
           {actualRange && <p>실제 구간: {formatToHHMMSS(Math.floor(actualRange.startSeconds))} ~ {formatToHHMMSS(Math.ceil(actualRange.endSeconds))}. 브라우저의 다운로드 목록을 확인해주세요.</p>}

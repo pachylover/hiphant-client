@@ -1,5 +1,6 @@
 "use client"
 
+import { LoadingState } from "@/components/loading-state"
 import type React from "react"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -95,6 +96,7 @@ export default function AdminDashboardPage() {
         <p className="text-sm text-muted-foreground">서비스 통계와 최근 생성된 하이라이트를 확인합니다.</p>
       </div>
 
+      {loading && <LoadingState label="관리자 통계를 불러오는 중입니다" />}
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {/* 통계 카드 */}

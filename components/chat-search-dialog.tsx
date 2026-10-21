@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
+import { LoadingState } from "@/components/loading-state"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -43,6 +44,7 @@ export function ChatSearchDialog({ videoId, trigger }: Props) {
   const [searched, setSearched] = useState(false)
 
   const runSearch = async (targetPage: number, searchMode: ChatSearchMode = mode) => {
+    if (loading) return
     if (!keyword.trim() && !username.trim()) {
       setError("검색어 또는 닉네임을 입력해주세요.")
       return
@@ -159,6 +161,7 @@ export function ChatSearchDialog({ videoId, trigger }: Props) {
           </Button>
         </form>
 
+        {loading && <LoadingState label="채팅 검색 결과를 불러오는 중입니다" />}
         {error && <p className="shrink-0 text-sm text-destructive">{error}</p>}
 
         {searched && result && (

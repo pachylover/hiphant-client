@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
+import { LoadingLink as Link } from "@/components/loading-link"
+import { LoadingState } from "@/components/loading-state"
 import { Card } from "@/components/ui/card"
 import { ChevronRight, Film, Users } from "lucide-react"
 import { fetchChannelHighlights, fetchVideoThumbnail, type RecentHighlight } from "@/lib/api"
@@ -45,6 +46,7 @@ export function ChannelHighlights({ channelId, channelName, currentVideoId }: Ch
   }, [channelId, currentVideoId])
 
   // 로딩 전이거나 다른 하이라이트가 없으면 섹션 자체를 감춘다
+  if (!items && channelId) return <LoadingState label="같은 스트리머의 하이라이트를 불러오는 중입니다" />
   if (!items || items.length === 0) return null
 
   return (

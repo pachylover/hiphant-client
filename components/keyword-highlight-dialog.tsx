@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { LoadingState } from "@/components/loading-state"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -78,6 +79,7 @@ export function KeywordHighlightDialog({ videoId, onHighlightsAdded }: Props) {
         <Input id="highlight-keyword" value={keyword} maxLength={50} disabled={loading} placeholder="예: 레전드"
           onChange={event => { setKeyword(event.target.value); setError(""); setMessage("") }} />
         <p className="text-xs text-muted-foreground">입력한 문구 전체를 하나의 키워드로 찾습니다. 결과는 특정 채팅 탭에 저장되며 같은 키워드를 다시 요청해도 중복 추가되지 않습니다.</p>
+        {loading && <LoadingState label="키워드 하이라이트를 탐지하는 중입니다" />}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         {message && <p role="status" className="text-sm">{message}</p>}
         <div className="flex justify-end gap-2">

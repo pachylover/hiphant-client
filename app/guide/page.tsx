@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { LoadingLink as Link } from "@/components/loading-link"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 

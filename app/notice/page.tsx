@@ -1,8 +1,9 @@
 "use client"
 
+import { LoadingState } from "@/components/loading-state"
 import { useState, useEffect } from "react"
 import { ArrowLeft, ChevronRight } from "lucide-react"
-import Link from "next/link"
+import { LoadingLink as Link } from "@/components/loading-link"
 import { Button } from "@/components/ui/button"
 
 interface NoticeMeta {
@@ -172,7 +173,8 @@ export default function NoticePage() {
 
             <div className="rounded-lg border border-border bg-card overflow-hidden">
               {isLoading ? (
-                <div className="p-6 space-y-4">
+                <div aria-busy="true" className="p-6 space-y-4">
+                  <LoadingState label="공지사항을 불러오는 중입니다" />
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="flex items-center gap-4 animate-pulse">
                       <div className="h-6 w-8 bg-secondary rounded" />
@@ -213,7 +215,8 @@ export default function NoticePage() {
         ) : (
           <div className="rounded-lg border border-border bg-card p-6 sm:p-8">
             {isDetailLoading ? (
-              <div className="space-y-4">
+              <div aria-busy="true" className="space-y-4">
+                <LoadingState label="공지 내용을 불러오는 중입니다" />
                 <div className="h-8 w-48 bg-secondary rounded animate-pulse" />
                 <div className="h-4 w-32 bg-secondary rounded animate-pulse" />
                 <div className="space-y-2 mt-6">

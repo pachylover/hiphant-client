@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { VideoInfoCard } from "@/components/video-info-card"
+import { LoadingState, LoadingOverlay } from "@/components/loading-state"
 import { VideoInfoSkeleton } from "@/components/video-info-skeleton"
 import { Sparkles, Search } from "lucide-react"
 
@@ -16,7 +17,7 @@ export default function VideoPage() {
 
   const [isLoading, setIsLoading] = useState(true)
   const [videoData, setVideoData] = useState<any>(null)
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [isGenerating, startTransition] = useTransition()
 
   useEffect(() => {
     // allow pre-seeding the page with a video object via query string:
@@ -84,17 +85,16 @@ export default function VideoPage() {
   }
 
   const handleGenerateHighlights = () => {
-    setIsGenerating(true)
-    setTimeout(() => {
-      router.push(`/highlights/${videoId}`)
-    }, 1500)
+    if (isGenerating) return
+    startTransition(() => router.push(`/highlights/${videoId}`))
   }
 
   if (isLoading) {
     return (
       <div className="container py-12 mx-auto">
         <div className="mx-auto max-w-2xl space-y-6">
-          <VideoInfoSkeleton />
+          <LoadingState label="방송 정보를 불러오는 중입니다" />
+          <div aria-hidden="true"><VideoInfoSkeleton /></div>
         </div>
       </div>
     )
@@ -123,6 +123,7 @@ export default function VideoPage() {
   return (
     <div className="container py-12 mx-auto">
       <div className="mx-auto max-w-2xl space-y-6">
+        {isGenerating && <LoadingOverlay label="하이라이트 화면을 불러오는 중입니다" />}
         <VideoInfoCard {...videoData} />
 
         <div className="flex flex-col gap-3 sm:flex-row">
