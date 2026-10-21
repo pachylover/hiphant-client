@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { HighlightsClient } from "./highlights-client"
 import { fetchVideoAndHighlights } from "@/lib/highlights"
 import { SITE_URL } from "@/lib/site"
-import { createPageMetadata } from "@/lib/metadata"
 
 // 하이라이트 목록을 서버에서 렌더링한다 (첫 화면이 비어 보이지 않도록).
 export const revalidate = 300
@@ -31,12 +30,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   // 영상 정보를 못 읽었으면(삭제/비공개) 일반 제목으로 둔다
   if (!videoInfo?.videoTitle) {
-    return createPageMetadata({
+    return {
       title: "하이라이트 타임스탬프 | HiPhant",
       description: "치지직 다시보기의 채팅이 몰린 구간을 타임스탬프로 정리합니다.",
-      path: `/highlights/${encodeURIComponent(videoId)}`,
-      noindex: true,
-    })
+      alternates: { canonical: url },
+      robots: NOINDEX,
+    }
   }
 
   const channelName = videoInfo.channel?.channelName

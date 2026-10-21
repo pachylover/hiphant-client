@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "HiPhant - 치지직 다시보기 하이라이트 타임스탬프 추출기",
   description: "치지직 다시보기의 하이라이트 타임스탬프를 자동으로 생성합니다",
+  generator: "v0.app",
   keywords: [
     "HiPhant",
     "hiphant",
@@ -42,7 +43,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'HiPhant - 치지직 다시보기 하이라이트 타임스탬프 추출기',
     description: '치지직 다시보기의 하이라이트 타임스탬프를 자동으로 생성합니다',
-    url: SITE_URL,
+    url: 'https://hiphant.pachylover.com',
     siteName: 'HiPhant',
     images: [
       {
