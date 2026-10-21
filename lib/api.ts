@@ -72,6 +72,8 @@ export interface StatsResponse {
 
 // 최근 하이라이트
 export interface RecentHighlight {
+  thumbnailImageUrl?: string | null
+  publishDate?: string | null
   id: number
   videoId: string
   /** 치지직 다시보기 제목. 백필 전 데이터는 null 일 수 있다. */
@@ -292,4 +294,23 @@ export function subscribeProgress(
   }
 
   return () => source.close()
+}
+
+export interface Streamer {
+  channelId: string
+  channelName: string
+}
+
+export async function searchStreamers(query: string, signal?: AbortSignal): Promise<Streamer[]> {
+  const res = await fetch(`${API_BASE_URL}/v1/highlights/streamers?${new URLSearchParams({ query })}`, { signal, cache: "no-store" })
+  if (!res.ok) throw new Error("스트리머를 불러오지 못했습니다")
+  const body: ListResult<Streamer> = await res.json()
+  return body.list ?? []
+}
+
+export async function fetchHighlightPage(params: { query?: string; channelId?: string; page?: number; size?: number }): Promise<PageResult<RecentHighlight>> {
+  const qs = new URLSearchParams({ query: params.query ?? "", channelId: params.channelId ?? "", page: String(params.page ?? 0), size: String(params.size ?? 12) })
+  const res = await fetch(`${API_BASE_URL}/v1/highlights?${qs}`, { cache: "no-store" })
+  if (!res.ok) throw new Error("하이라이트 목록을 불러오지 못했습니다")
+  return res.json()
 }

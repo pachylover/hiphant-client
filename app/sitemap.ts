@@ -5,7 +5,7 @@ import { SITE_URL } from "@/lib/site"
 export const revalidate = 3600
 
 /**
- * 정적 페이지만 싣는다.
+ * 일반 탐색 페이지만 싣는다. 스트리머별·이름 검색 결과는 제외한다.
  *
  * 하이라이트 페이지(/highlights/[videoId])는 제목·설명에 스트리머 이름과 방송 제목이
  * 들어가므로 검색 노출 대상에서 제외한다. 사이트맵에서 빼는 것만으로는 색인을 막지 못해
@@ -14,6 +14,7 @@ export const revalidate = 3600
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: `${SITE_URL}/`, changeFrequency: "daily", priority: 1.0 },
+    { url: `${SITE_URL}/highlights`, changeFrequency: "daily", priority: 0.8 },
     { url: `${SITE_URL}/guide`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${SITE_URL}/notice`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE_URL}/privacy`, changeFrequency: "monthly", priority: 0.5 },
